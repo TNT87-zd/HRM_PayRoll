@@ -1,0 +1,5 @@
+﻿branch_id,branch_name,district,lat,lon,demand_factor,seats,open_time,close_time
+CN01,Chi nhánh Hải Châu,Hải Châu,16.0471,108.2208,1.0,32,06:30,22:30
+CN02,Chi nhánh Thanh Khê,Thanh Khê,16.068,108.19,0.85,28,06:30,22:30
+CN03,Chi nhánh Sơn Trà,Sơn Trà,16.072,108.24,1.2,40,06:30,22:30
+CN04,Chi nhánh Ngũ Hành Sơn,Ngũ Hành Sơn,16.005,108.26,0.7,24,06:30,22:30
