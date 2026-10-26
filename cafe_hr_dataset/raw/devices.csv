@@ -1,0 +1,5 @@
+device_id,branch_id,device_name,ip_address
+CN01-TB01,CN01,Máy chấm công cửa chính CN01,192.168.1.10
+CN02-TB01,CN02,Máy chấm công cửa chính CN02,192.168.2.10
+CN03-TB01,CN03,Máy chấm công cửa chính CN03,192.168.3.10
+CN04-TB01,CN04,Máy chấm công cửa chính CN04,192.168.4.10

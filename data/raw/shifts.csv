@@ -1,7 +1,7 @@
-﻿shift_id,shift_name,contract_type,start_time,end_time,paid_hours
+shift_id,shift_name,contract_type,start_time,end_time,paid_hours
 CA_SANG,Ca sáng,FT,06:30,14:30,8.0
 CA_CHIEU,Ca chiều,FT,14:30,22:30,8.0
-HANH_CHINH,Hành chính (quản lý),FT,08:00,17:00,8.0
-PT_SANG,Bán thời gian - sáng,PT,06:30,12:00,5.5
-PT_CHIEU,Bán thời gian - chiều,PT,12:00,17:30,5.5
-PT_TOI,Bán thời gian - tối,PT,17:30,22:30,5.0
+HANH_CHINH,Hành chính,FT,08:00,17:00,8.0
+PT_SANG,PT sáng,PT,06:30,12:00,5.5
+PT_CHIEU,PT chiều,PT,12:00,17:30,5.5
+PT_TOI,PT tối,PT,17:30,22:30,5.0

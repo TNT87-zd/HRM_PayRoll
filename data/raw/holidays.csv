@@ -1,24 +1,2 @@
-﻿date,holiday_name,is_closed_for_business,note
-2025-01-01,Tết Dương lịch,False,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2025-01-28,Tết Nguyên đán 2025,True,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2025-01-29,Tết Nguyên đán 2025,True,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2025-01-30,Tết Nguyên đán 2025,True,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2025-01-31,Tết Nguyên đán 2025,True,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2025-02-01,Tết Nguyên đán 2025,True,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2025-04-07,Giỗ Tổ Hùng Vương 2025,False,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2025-04-30,Ngày Chiến thắng 30/4,False,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2025-05-01,Quốc tế Lao động 1/5,False,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2025-09-01,Quốc khánh 2/9 (ngày nghỉ liền kề),False,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2025-09-02,Quốc khánh 2/9,False,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2026-01-01,Tết Dương lịch,False,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2026-02-16,Tết Nguyên đán 2026 (Bính Ngọ),True,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2026-02-17,Tết Nguyên đán 2026 (Bính Ngọ),True,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2026-02-18,Tết Nguyên đán 2026 (Bính Ngọ),True,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2026-02-19,Tết Nguyên đán 2026 (Bính Ngọ),True,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2026-02-20,Tết Nguyên đán 2026 (Bính Ngọ),True,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2026-04-26,Giỗ Tổ Hùng Vương 2026 (rơi vào Chủ nhật),False,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2026-04-27,Nghỉ bù Giỗ Tổ 2026,False,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2026-04-30,Ngày Chiến thắng 30/4,False,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2026-05-01,Quốc tế Lao động 1/5,False,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2026-09-01,"Quốc khánh 2/9 (ngày nghỉ liền kề, doanh nghiệp chọn 1/9)",False,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
-2026-09-02,Quốc khánh 2/9,False,Ngày nghỉ lễ chính thức (mô phỏng); cần đối chiếu thông báo chính thức khi dùng thực tế
+date,holiday_name,is_closed_for_business
+2024-10-10,Ngày Giải phóng Thủ đô,False

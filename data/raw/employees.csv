@@ -1,101 +1,29 @@
-﻿employee_id,full_name,branch_id,role,contract_type,primary_shift,hire_date,termination_date,termination_reason,is_student,birth_year,base_salary,hourly_rate,is_real_face,data_source
-NV0001,Thành viên nhóm 1 (thay bằng tên thật),CN01,quan_ly,FT,HANH_CHINH,2022-12-28,,,0,1995,12400000.0,,1,real_member_placeholder
-NV0002,Thành viên nhóm 2 (thay bằng tên thật),CN01,thu_ngan,FT,CA_SANG,2023-12-08,,,0,1997,7200000.0,,1,real_member_placeholder
-NV0003,Thành viên nhóm 3 (thay bằng tên thật),CN01,pha_che,PT,PT_TOI,2024-03-23,,,0,2000,,27000.0,1,real_member_placeholder
-NV0004,Thành viên nhóm 4 (thay bằng tên thật),CN01,phuc_vu,PT,PT_TOI,2024-06-15,,,1,2006,,26000.0,1,real_member_placeholder
-NV0005,Thành viên nhóm 5 (thay bằng tên thật),CN01,pha_che,FT,CA_SANG,2024-08-02,,,0,1997,8200000.0,,1,real_member_placeholder
-NV0006,Lý Quốc Hải,CN01,thu_ngan,FT,CA_CHIEU,2021-10-03,,,0,1994,6900000.0,,0,simulated
-NV0007,Đặng Thu Chi,CN02,quan_ly,FT,HANH_CHINH,2021-10-03,,,0,1996,12400000.0,,0,simulated
-NV0008,Trần Hữu Nam,CN02,thu_ngan,FT,CA_SANG,2021-10-03,2026-07-31,nghi_viec_tu_nguyen,0,2002,7200000.0,,0,simulated
-NV0009,Lý Thu Chi,CN02,thu_ngan,FT,CA_CHIEU,2021-10-03,,,0,1995,6600000.0,,0,simulated
-NV0010,Trần Văn Nam,CN03,thu_ngan,FT,CA_CHIEU,2021-10-03,,,0,2000,7500000.0,,0,simulated
-NV0011,Vũ Đức Sơn,CN04,quan_ly,FT,HANH_CHINH,2021-10-03,,,0,1999,10600000.0,,0,simulated
-NV0012,Lý Ngọc Dung,CN01,pha_che,FT,CA_CHIEU,2021-10-18,2025-09-04,nghi_viec_tu_nguyen,0,1993,8100000.0,,0,simulated
-NV0013,Đặng Thị Chi,CN02,phuc_vu,PT,PT_CHIEU,2022-09-22,,,0,1996,,28000.0,0,simulated
-NV0014,Huỳnh Bảo Hương,CN03,thu_ngan,PT,PT_SANG,2022-09-29,2026-04-04,nghi_viec_tu_nguyen,1,2003,,28500.0,0,simulated
-NV0015,Phan Quốc Cường,CN03,pha_che,FT,CA_CHIEU,2022-11-27,2026-06-24,nghi_viec_tu_nguyen,0,1998,8500000.0,,0,simulated
-NV0016,Ngô Minh Sơn,CN04,thu_ngan,PT,PT_TOI,2022-12-30,,,1,2007,,29500.0,0,simulated
-NV0017,Huỳnh Minh Bình,CN02,pha_che,PT,PT_CHIEU,2023-03-29,2026-03-11,nghi_viec_tu_nguyen,0,1999,,28000.0,0,simulated
-NV0018,Đặng Thanh Tâm,CN04,pha_che,FT,CA_CHIEU,2023-06-22,2026-03-09,nghi_viec_tu_nguyen,0,2003,8400000.0,,0,simulated
-NV0019,Huỳnh Minh Tuấn,CN02,pha_che,PT,PT_TOI,2023-06-27,2024-10-09,nghi_viec_tu_nguyen,0,1994,,30500.0,0,simulated
-NV0020,Nguyễn Thu My,CN01,thu_ngan,PT,PT_SANG,2023-08-07,2025-06-10,nghi_viec_tu_nguyen,1,2004,,31500.0,0,simulated
-NV0021,Hồ Mỹ Nhi,CN03,phuc_vu,PT,PT_SANG,2023-09-15,2026-02-07,nghi_viec_tu_nguyen,0,1995,,28000.0,0,simulated
-NV0022,Hồ Khánh Giang,CN01,pha_che,FT,CA_SANG,2023-09-17,,,0,1998,6600000.0,,0,simulated
-NV0023,Vũ Phương Vy,CN03,pha_che,FT,CA_SANG,2023-10-06,,,0,2003,7200000.0,,0,simulated
-NV0024,Đặng Đức Nam,CN04,phuc_vu,PT,PT_SANG,2023-10-25,,,1,2005,,28500.0,0,simulated
-NV0025,Đỗ Phương Anh,CN03,phuc_vu,PT,PT_SANG,2023-12-30,2025-02-12,nghi_viec_tu_nguyen,1,2004,,27000.0,0,simulated
-NV0026,Võ Gia Tâm,CN02,phuc_vu,PT,PT_CHIEU,2024-01-12,2026-08-31,nghi_viec_tu_nguyen,1,2004,,28500.0,0,simulated
-NV0027,Phạm Đức Phúc,CN02,thu_ngan,PT,PT_CHIEU,2024-01-17,2026-01-27,nghi_viec_tu_nguyen,1,2004,,28500.0,0,simulated
-NV0028,Phạm Bảo My,CN03,phuc_vu,PT,PT_SANG,2024-02-19,2024-11-27,het_hop_dong,1,2005,,27000.0,0,simulated
-NV0029,Vũ Quốc Phúc,CN03,quan_ly,FT,HANH_CHINH,2024-02-24,2024-11-29,nghi_viec_tu_nguyen,0,1995,14000000.0,,0,simulated
-NV0030,Phan Thị Thảo,CN03,pha_che,PT,PT_CHIEU,2024-02-29,,,0,1997,,32000.0,0,simulated
-NV0031,Phan Phương Vy,CN02,pha_che,FT,CA_SANG,2024-03-24,,,0,1995,8900000.0,,0,simulated
-NV0032,Phạm Thanh Nam,CN02,phuc_vu,PT,PT_CHIEU,2024-04-01,,,1,2004,,27500.0,0,simulated
-NV0033,Đặng Bảo Thảo,CN03,thu_ngan,FT,CA_SANG,2024-04-01,,,0,1999,6700000.0,,0,simulated
-NV0034,Đỗ Thị My,CN03,pha_che,FT,CA_SANG,2024-04-18,,,0,2000,9300000.0,,0,simulated
-NV0035,Phạm Thanh Sơn,CN04,pha_che,PT,PT_TOI,2024-05-12,2024-11-08,nghi_viec_tu_nguyen,1,2007,,30500.0,0,simulated
-NV0036,Lý Mỹ Anh,CN02,pha_che,FT,CA_CHIEU,2024-05-15,,,0,2003,8600000.0,,0,simulated
-NV0037,Hồ Hữu Bình,CN03,phuc_vu,PT,PT_TOI,2024-06-07,2025-11-24,nghi_viec_tu_nguyen,1,2002,,26500.0,0,simulated
-NV0038,Phan Thu Lan,CN04,thu_ngan,FT,CA_SANG,2024-06-14,2026-03-29,nghi_viec_tu_nguyen,0,2002,7800000.0,,0,simulated
-NV0039,Bùi Đức Hải,CN01,phuc_vu,PT,PT_SANG,2024-07-02,,,1,2005,,29500.0,0,simulated
-NV0040,Lê Phương Ngân,CN04,pha_che,PT,PT_TOI,2024-07-03,2025-02-17,nghi_viec_tu_nguyen,1,2007,,30500.0,0,simulated
-NV0041,Ngô Bảo Nhi,CN01,phuc_vu,PT,PT_SANG,2024-08-02,2025-03-09,nghi_viec_tu_nguyen,1,2003,,26000.0,0,simulated
-NV0042,Bùi Thanh Hiếu,CN01,phuc_vu,PT,PT_SANG,2024-08-02,2025-02-04,nghi_viec_tu_nguyen,1,2004,,27500.0,0,simulated
-NV0043,Vũ Thanh Tâm,CN01,pha_che,PT,PT_CHIEU,2024-08-02,2024-10-20,nghi_viec_tu_nguyen,1,2003,,29000.0,0,simulated
-NV0044,Đỗ Văn Sơn,CN02,pha_che,FT,CA_SANG,2024-08-02,,,0,1999,9300000.0,,0,simulated
-NV0045,Trần Phương Anh,CN02,phuc_vu,PT,PT_TOI,2024-08-02,2024-10-07,nghi_viec_tu_nguyen,1,2005,,27000.0,0,simulated
-NV0046,Đặng Hữu Hiếu,CN03,pha_che,PT,PT_CHIEU,2024-08-02,2024-11-02,nghi_viec_tu_nguyen,1,2007,,32500.0,0,simulated
-NV0047,Đỗ Quốc Long,CN04,pha_che,FT,CA_SANG,2024-08-02,2025-09-18,nghi_viec_tu_nguyen,0,2001,8200000.0,,0,simulated
-NV0048,Hồ Thu Lan,CN04,pha_che,FT,CA_SANG,2024-08-02,,,0,1998,7900000.0,,0,simulated
-NV0049,Nguyễn Gia Hải,CN04,thu_ngan,FT,CA_CHIEU,2024-08-02,,,0,2002,7300000.0,,0,simulated
-NV0050,Phan Thị Dung,CN04,phuc_vu,PT,PT_CHIEU,2024-08-02,2024-10-22,nghi_viec_tu_nguyen,1,2002,,29000.0,0,simulated
-NV0051,Bùi Gia Việt,CN04,phuc_vu,PT,PT_TOI,2024-08-02,2025-02-20,nghi_viec_tu_nguyen,1,2003,,28000.0,0,simulated
-NV0052,Bùi Thị Giang,CN04,phuc_vu,PT,PT_TOI,2024-08-02,2025-01-05,nghi_viec_tu_nguyen,1,2006,,29000.0,0,simulated
-NV0053,Hồ Thu Hà,CN02,phuc_vu,PT,PT_CHIEU,2024-10-19,2026-09-23,nghi_viec_tu_nguyen,0,1993,,27500.0,0,simulated
-NV0054,Đặng Quốc Quân,CN04,phuc_vu,PT,PT_SANG,2024-11-03,2024-12-13,nghi_viec_tu_nguyen,1,2005,,28000.0,0,simulated
-NV0055,Vũ Đức Dũng,CN01,pha_che,PT,PT_TOI,2024-11-04,2025-08-20,nghi_viec_tu_nguyen,1,2002,,30500.0,0,simulated
-NV0056,Hồ Ngọc Thảo,CN02,pha_che,PT,PT_CHIEU,2024-11-04,2025-12-19,nghi_viec_tu_nguyen,1,2007,,32500.0,0,simulated
-NV0057,Nguyễn Bảo Trang,CN03,pha_che,PT,PT_TOI,2024-11-20,2024-12-02,het_hop_dong,1,2002,,33500.0,0,simulated
-NV0058,Lý Quốc Long,CN04,pha_che,PT,PT_TOI,2024-12-03,2025-02-06,nghi_viec_tu_nguyen,1,2004,,31500.0,0,simulated
-NV0059,Dương Thu Hà,CN03,phuc_vu,PT,PT_CHIEU,2024-12-06,2026-07-18,nghi_viec_tu_nguyen,1,2002,,27500.0,0,simulated
-NV0060,Nguyễn Phương Yến,CN03,pha_che,PT,PT_TOI,2024-12-23,2025-01-11,nghi_viec_tu_nguyen,1,2006,,31500.0,0,simulated
-NV0061,Huỳnh Bảo Vy,CN03,quan_ly,FT,HANH_CHINH,2024-12-28,,,1,2005,13800000.0,,0,simulated
-NV0062,Trần Bảo Chi,CN04,phuc_vu,PT,PT_TOI,2025-01-10,,,1,2002,,28000.0,0,simulated
-NV0063,Trần Quốc Quân,CN04,phuc_vu,PT,PT_SANG,2025-01-21,2025-05-26,nghi_viec_tu_nguyen,1,2002,,27500.0,0,simulated
-NV0064,Võ Thị Hà,CN03,pha_che,PT,PT_CHIEU,2025-02-04,2025-02-12,nghi_viec_tu_nguyen,0,1993,,31500.0,0,simulated
-NV0065,Đặng Thanh Hải,CN01,phuc_vu,PT,PT_SANG,2025-02-19,2025-05-09,nghi_viec_tu_nguyen,0,1995,,26000.0,0,simulated
-NV0066,Đỗ Thị Trang,CN03,phuc_vu,PT,PT_TOI,2025-02-20,2025-03-20,het_hop_dong,1,2003,,27000.0,0,simulated
-NV0067,Huỳnh Quốc Cường,CN04,pha_che,PT,PT_SANG,2025-03-04,2026-09-28,nghi_viec_tu_nguyen,0,1993,,32000.0,0,simulated
-NV0068,Lý Khánh Ngân,CN04,pha_che,PT,PT_TOI,2025-03-08,,,1,2002,,30000.0,0,simulated
-NV0069,Ngô Khánh My,CN03,pha_che,PT,PT_TOI,2025-03-09,,,1,2003,,31500.0,0,simulated
-NV0070,Lê Hữu Tuấn,CN04,phuc_vu,PT,PT_CHIEU,2025-03-21,,,1,2003,,27000.0,0,simulated
-NV0071,Nguyễn Quốc Khoa,CN01,phuc_vu,PT,PT_SANG,2025-03-23,2025-04-10,nghi_viec_tu_nguyen,1,2004,,26000.0,0,simulated
-NV0072,Trần Khánh Linh,CN03,phuc_vu,PT,PT_TOI,2025-04-11,2026-09-26,nghi_viec_tu_nguyen,1,2006,,26000.0,0,simulated
-NV0073,Phan Thị Hà,CN01,phuc_vu,PT,PT_SANG,2025-05-01,2026-01-20,nghi_viec_tu_nguyen,1,2007,,26000.0,0,simulated
-NV0074,Trần Khánh Chi,CN01,phuc_vu,PT,PT_SANG,2025-05-26,,,0,1993,,27500.0,0,simulated
-NV0075,Vũ Mỹ Ngân,CN04,phuc_vu,PT,PT_SANG,2025-06-22,,,1,2003,,28500.0,0,simulated
-NV0076,Lý Minh An,CN01,thu_ngan,PT,PT_SANG,2025-07-06,,,1,2002,,27000.0,0,simulated
-NV0077,Nguyễn Bảo Yến,CN01,pha_che,PT,PT_SANG,2025-09-18,2025-11-05,cho_thoi_viec,0,1997,,31000.0,0,simulated
-NV0078,Lý Thu Vy,CN01,pha_che,FT,CA_CHIEU,2025-09-19,,,0,2001,8000000.0,,0,simulated
-NV0079,Đỗ Quốc Tuấn,CN04,pha_che,FT,CA_SANG,2025-10-18,2026-04-11,cho_thoi_viec,0,2000,7800000.0,,0,simulated
-NV0080,Trần Mỹ Thảo,CN01,pha_che,PT,PT_CHIEU,2025-11-27,,,1,2005,,30000.0,0,simulated
-NV0081,Trần Quốc Hải,CN03,phuc_vu,PT,PT_CHIEU,2025-12-09,,,1,2004,,27000.0,0,simulated
-NV0082,Phan Gia Khoa,CN02,pha_che,PT,PT_TOI,2026-01-12,,,1,2006,,28500.0,0,simulated
-NV0083,Hồ Minh Dũng,CN01,phuc_vu,PT,PT_SANG,2026-01-30,2026-02-28,nghi_viec_tu_nguyen,0,2003,,26500.0,0,simulated
-NV0084,Bùi Thị Chi,CN02,thu_ngan,PT,PT_TOI,2026-02-07,2026-02-12,nghi_viec_tu_nguyen,1,2003,,29500.0,0,simulated
-NV0085,Đỗ Thị Giang,CN03,phuc_vu,PT,PT_CHIEU,2026-02-17,,,1,2006,,27500.0,0,simulated
-NV0086,Đỗ Bảo Ngân,CN02,thu_ngan,PT,PT_TOI,2026-02-20,2026-02-25,het_hop_dong,1,2003,,27500.0,0,simulated
-NV0087,Vũ Gia Dũng,CN01,phuc_vu,PT,PT_CHIEU,2026-03-19,2026-03-20,nghi_viec_tu_nguyen,0,1999,,26000.0,0,simulated
-NV0088,Phan Phương Dung,CN02,thu_ngan,PT,PT_CHIEU,2026-03-19,,,0,1995,,29000.0,0,simulated
-NV0089,Lê Gia Khoa,CN04,pha_che,FT,CA_CHIEU,2026-03-27,,,0,1999,8500000.0,,0,simulated
-NV0090,Hồ Hữu Sơn,CN02,pha_che,PT,PT_CHIEU,2026-03-31,,,1,2003,,31000.0,0,simulated
-NV0091,Phan Văn Tuấn,CN04,thu_ngan,FT,CA_SANG,2026-04-07,,,0,1999,8000000.0,,0,simulated
-NV0092,Hồ Thị Anh,CN01,phuc_vu,PT,PT_TOI,2026-04-19,,,1,2006,,27500.0,0,simulated
-NV0093,Vũ Gia Dũng,CN03,thu_ngan,PT,PT_TOI,2026-04-20,2026-05-10,nghi_viec_tu_nguyen,1,2007,,28000.0,0,simulated
-NV0094,Vũ Phương Lan,CN04,pha_che,FT,CA_SANG,2026-04-25,2026-05-26,nghi_viec_tu_nguyen,0,2003,9100000.0,,0,simulated
-NV0095,Lê Gia Bình,CN03,thu_ngan,PT,PT_TOI,2026-05-17,,,1,2002,,29000.0,0,simulated
-NV0096,Trần Minh Hải,CN04,pha_che,FT,CA_SANG,2026-06-18,,,0,2002,7900000.0,,0,simulated
-NV0097,Lý Văn Cường,CN03,pha_che,FT,CA_CHIEU,2026-07-19,2026-09-18,nghi_viec_tu_nguyen,0,2001,7500000.0,,0,simulated
-NV0098,Vũ Thị Anh,CN03,phuc_vu,PT,PT_SANG,2026-07-31,,,0,1995,,27000.0,0,simulated
-NV0099,Đỗ Bảo Nhi,CN02,thu_ngan,FT,CA_SANG,2026-08-08,,,0,2000,7400000.0,,0,simulated
-NV0100,Lý Đức Khoa,CN02,phuc_vu,PT,PT_CHIEU,2026-09-08,,,1,2006,,26500.0,0,simulated
+employee_id,branch_id,role,contract_type,primary_shift,base_salary,hourly_rate,hire_date,is_real_face
+nv0001,CN01,quan_ly,FT,HANH_CHINH,7535505.0,0.0,2024-01-01,True
+NV0002,CN01,pha_che,FT,CA_SANG,11643736.0,0.0,2024-01-01,True
+nv0003,CN01,pha_che,FT,CA_SANG,10927429.0,0.0,2024-01-01,True
+NV0004,CN01,thu_ngan,FT,CA_SANG,9633270.0,0.0,2024-01-01,True
+nv0005,CN01,phuc_vu,PT,PT_SANG,0.0,29165.0,2024-01-01,True
+NV0006,CN01,phuc_vu,PT,PT_SANG,0.0,31292.0,2024-01-01,False
+nv0007,CN01,phuc_vu,PT,PT_SANG,0.0,27429.0,2024-01-01,False
+NV0008,CN02,quan_ly,FT,HANH_CHINH,11184208.0,0.0,2024-01-01,False
+nv0009,CN02,pha_che,FT,CA_SANG,8208817.0,0.0,2024-01-01,False
+NV0010,CN02,pha_che,FT,CA_SANG,7565064.0,0.0,2024-01-01,False
+nv0011,CN02,thu_ngan,FT,CA_SANG,10158873.0,0.0,2024-01-01,False
+NV0012,CN02,phuc_vu,PT,PT_SANG,0.0,31878.0,2024-01-01,False
+nv0013,CN02,phuc_vu,PT,PT_SANG,0.0,30678.0,2024-01-01,False
+NV0014,CN02,phuc_vu,PT,PT_SANG,0.0,30805.0,2024-01-01,False
+nv0015,CN03,quan_ly,FT,HANH_CHINH,11304863.0,0.0,2024-01-01,False
+NV0016,CN03,pha_che,FT,CA_SANG,11716385.0,0.0,2024-01-01,False
+nv0017,CN03,pha_che,FT,CA_SANG,10079359.0,0.0,2024-01-01,False
+NV0018,CN03,thu_ngan,FT,CA_SANG,7768681.0,0.0,2024-01-01,False
+nv0019,CN03,phuc_vu,PT,PT_SANG,0.0,31198.0,2024-01-01,False
+NV0020,CN03,phuc_vu,PT,PT_SANG,0.0,29251.0,2024-01-01,False
+nv0021,CN03,phuc_vu,PT,PT_SANG,0.0,29501.0,2024-01-01,False
+NV0022,CN04,quan_ly,FT,HANH_CHINH,9224788.0,0.0,2024-01-01,False
+nv0023,CN04,pha_che,FT,CA_SANG,8095297.0,0.0,2024-01-01,False
+NV0024,CN04,pha_che,FT,CA_SANG,12560589.0,0.0,2024-01-01,False
+nv0025,CN04,thu_ngan,FT,CA_SANG,11689404.0,0.0,2024-01-01,False
+NV0026,CN04,phuc_vu,PT,PT_SANG,0.0,30219.0,2024-01-01,False
+nv0027,CN04,phuc_vu,PT,PT_SANG,0.0,29012.0,2024-01-01,False
+NV0028,CN04,phuc_vu,PT,PT_SANG,0.0,31113.0,2024-01-01,False

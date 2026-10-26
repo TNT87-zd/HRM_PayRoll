@@ -1,0 +1,5 @@
+department_id,department_name,region_zone,bhxh_rate,bhyt_rate,bhtn_rate
+DPT01,Pha chế - Barista,Vùng I,0.08,0.015,0.01
+DPT02,Thu ngân - Cashier,Vùng I,0.08,0.015,0.01
+DPT03,Quản lý cửa hàng,Vùng I,0.08,0.015,0.01
+DPT04,Phục vụ - Server,Vùng I,0.08,0.015,0.01
