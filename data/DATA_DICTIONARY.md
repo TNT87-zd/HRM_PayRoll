@@ -1,6 +1,6 @@
 # DATA_DICTIONARY
 
-Mô tả cột của các bảng trong `clean/` và `features/`.
+Mô tả chi tiết các cột của bảng dữ liệu trong thư mục `clean/` và `features/`.
 
 ## clean/branches
 

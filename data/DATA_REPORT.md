@@ -1,7 +1,7 @@
 # DATA_REPORT
 
-- Chuỗi: Cafe Biển Xanh (tên giả định); giai đoạn 2024-10-01 → 2026-09-30; seed 42.
-- Đây là dữ liệu MÔ PHỎNG; tên người và các tham số lương/bảo hiểm/thuế là giả định.
+- Chuỗi: Cafe 2TNQC; giai đoạn 2024-10-01 → 2026-09-30; seed 42.
+- Đây là dữ liệu MÔ PHỎNG; tên người và các tham số lương/bảo hiểm/thuế là giả định phục vụ đồ án.
 
 ## 1. Số dòng, số cột
 
@@ -255,7 +255,7 @@ Phần lớn giá trị thiếu là có chủ đích (chưa nghỉ việc, chỉ
 | FK employee_id trong attendance_events | ĐẠT |  |
 | FK branch_id trong attendance_events | ĐẠT |  |
 | FK employee_id trong payroll | ĐẠT |  |
-| FK branch_id trong payroll | ĐẠT |  |
+| FK branch_id dalam payroll | ĐẠT |  |
 | FK employee_id trong leave_requests | ĐẠT |  |
 | FK branch_id trong leave_requests | ĐẠT |  |
 | FK shift_id trong attendance_daily | ĐẠT |  |

@@ -46,7 +46,7 @@ else:
 logger = logging.getLogger(__name__)
 
 # Đường dẫn thư mục gốc của ứng dụng HRM_PayRoll (app/backend/src/cv -> HRM_PayRoll)
-_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_PROJECT_ROOT = Path(__file__).resolve().parents[4]
 
 # Tọa độ chuẩn 5 điểm mốc (mắt trái, mắt phải, mũi, khóe miệng trái, khóe miệng phải)
 # của ArcFace cho ảnh căn chỉnh kích thước 112x112.
