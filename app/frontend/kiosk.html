@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kiosk chấm công - Cafe Biển Xanh</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes scan { 0% {top: 0} 50% {top: 100%} 100% {top: 0} }
+    .laser { position: absolute; left: 0; right: 0; height: 3px; background: #38bdf8;
+             box-shadow: 0 0 14px #38bdf8; animation: scan 2.5s linear infinite; pointer-events: none; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-6">
+  <div class="flex justify-between items-center mb-4">
+    <div>
+      <h1 class="text-2xl font-bold">Cafe Biển Xanh · Chấm công khuôn mặt</h1>
+      <p id="device" class="text-slate-400"></p>
+    </div>
+    <div class="text-right">
+      <p id="clock" class="text-4xl font-bold tabular-nums">--:--:--</p>
+      <p id="today" class="text-slate-400"></p>
+    </div>
+  </div>
+
+  <div class="grid lg:grid-cols-3 gap-4">
+    <div class="lg:col-span-2 bg-slate-800 rounded-xl p-3">
+      <div class="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+        <video id="cam" autoplay muted playsinline class="absolute inset-0 w-full h-full object-contain"></video>
+        <canvas id="overlay" class="absolute inset-0 w-full h-full"></canvas>
+        <div class="laser"></div>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-4">
+      <div id="card" class="bg-slate-800 rounded-xl p-5 border-4 border-slate-600">
+        <p id="title" class="text-3xl font-bold">Đang chờ quét…</p>
+        <p id="sub" class="text-slate-300 mt-1">Nhìn thẳng vào camera</p>
+        <p id="time" class="text-slate-400 mt-1"></p>
+        <p class="text-sm text-slate-400 mt-4 mb-1">Độ giống khuôn mặt <span id="simTxt" class="font-bold text-slate-100"></span></p>
+        <div class="relative h-4 bg-slate-700 rounded-full overflow-hidden">
+          <div id="simBar" class="h-full rounded-full" style="width:0%"></div>
+          <div class="absolute top-0 bottom-0 w-0.5 bg-white" style="left:55%"></div>
+        </div>
+        <p class="text-xs text-slate-500 mt-1">Vạch trắng = ngưỡng chấp nhận 55%</p>
+      </div>
+
+      <div class="bg-slate-800 rounded-xl p-5">
+        <div class="flex justify-between items-center mb-2">
+          <h2 class="font-bold">5 lượt quét gần nhất</h2>
+          <button id="btnSound" class="text-sm bg-slate-700 hover:bg-slate-600 rounded px-3 py-1">Âm thanh: Tắt</button>
+        </div>
+        <ul id="history" class="space-y-2 text-sm"></ul>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ===== Cấu hình =====
+const API = '/api/kiosk/recognize';
+const DEVICE_ID = 'CN01-TB01';          // mã thiết bị thật trong attendance_events.csv
+const LAT = 16.0471, LON = 108.2208;    // toạ độ chi nhánh Hải Châu (CN01)
+const SCAN_MS = 1500;                   // chu kỳ gửi khung hình
+const COOLDOWN_MS = 5000;               // nghỉ sau khi chấm công thành công
+const REASONS = {                       // đổi cho khớp các giá trị `reason` backend trả về
+  accepted: 'Hợp lệ',
+  spoof: 'Nghi giả mạo (ảnh/video)',
+  low_similarity: 'Không khớp nhân viên nào',
+  outside_geofence: 'Ngoài phạm vi chi nhánh',
+  duplicate: 'Đã chấm công gần đây',
+};
+const DEMO = new URLSearchParams(location.search).has('demo');
+
+// ===== Biến chung =====
+const $ = id => document.getElementById(id);
+const video = $('cam'), cv = $('overlay'), ctx = cv.getContext('2d');
+let fw = 640, fh = 360, busy = false, pauseUntil = 0, resetTimer = null, sound = false;
+
+// ===== Đồng hồ =====
+function tick() {
+  const n = new Date();
+  $('clock').textContent = n.toLocaleTimeString('vi-VN');
+  $('today').textContent = n.toLocaleDateString('vi-VN', {weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'});
+}
+setInterval(tick, 1000); tick();
+$('device').textContent = 'Thiết bị ' + DEVICE_ID;
+
+// ===== Âm thanh =====
+function speak(t) {
+  if (!sound) return;
+  try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'vi-VN'; speechSynthesis.speak(u); } catch (e) {}
+}
+$('btnSound').onclick = () => {
+  sound = !sound;
+  $('btnSound').textContent = 'Âm thanh: ' + (sound ? 'Bật' : 'Tắt');
+  if (sound) speak('Đã bật âm thanh');
+};
+
+// ===== Camera =====
+navigator.mediaDevices.getUserMedia({video: {width: 1280, height: 720}, audio: false})
+  .then(s => { video.srcObject = s; })
+  .catch(() => setMsg('Không mở được camera', 'Hãy cho phép trình duyệt truy cập camera', '#ef4444'));
+
+function grab() {
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (!vw) return Promise.resolve(null);
+  fw = 640; fh = Math.round(640 * vh / vw);
+  const c = document.createElement('canvas'); c.width = fw; c.height = fh;
+  c.getContext('2d').drawImage(video, 0, 0, fw, fh);
+  return new Promise(r => c.toBlob(r, 'image/jpeg', 0.8));
+}
+
+// ===== Vẽ khung mặt (bbox = [x1, y1, x2, y2] theo pixel của ảnh gửi đi) =====
+function clearBox() { ctx.clearRect(0, 0, cv.width, cv.height); }
+function drawBox(b, color, label) {
+  const cw = cv.clientWidth, ch = cv.clientHeight;
+  cv.width = cw; cv.height = ch;
+  if (!b) return;
+  const s = Math.min(cw / fw, ch / fh), ox = (cw - fw * s) / 2, oy = (ch - fh * s) / 2;
+  const x = ox + b[0] * s, y = oy + b[1] * s, w = (b[2] - b[0]) * s, h = (b[3] - b[1]) * s;
+  ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.strokeRect(x, y, w, h);
+  ctx.font = 'bold 20px sans-serif';
+  const tw = ctx.measureText(label).width + 16, ty = Math.max(y - 32, 0);
+  ctx.fillStyle = color; ctx.fillRect(x, ty, tw, 32);
+  ctx.fillStyle = '#0f172a'; ctx.fillText(label, x + 8, ty + 23);
+}
+
+// ===== Thẻ kết quả =====
+function setMsg(title, sub, color) {
+  $('card').style.borderColor = color;
+  $('title').textContent = title; $('title').style.color = color;
+  $('sub').textContent = sub;
+}
+function setIdle() {
+  setMsg('Đang chờ quét…', 'Nhìn thẳng vào camera', '#475569');
+  $('title').style.color = '';
+  $('time').textContent = ''; $('simTxt').textContent = ''; $('simBar').style.width = '0%';
+}
+function addHistory(label, time, color, ok) {
+  const li = document.createElement('li'); li.className = 'flex justify-between';
+  const a = document.createElement('span'); a.style.color = color; a.textContent = (ok ? '✓ ' : '✗ ') + label;
+  const b = document.createElement('span'); b.className = 'text-slate-400'; b.textContent = time;
+  li.append(a, b);
+  $('history').prepend(li);
+  while ($('history').children.length > 5) $('history').lastChild.remove();
+}
+
+// ===== Xử lý kết quả từ API =====
+function handle(r) {
+  if (r.reason === 'no_face') { clearBox(); setIdle(); return; }
+  const ok = r.matched;
+  const color = ok ? '#22c55e' : '#ef4444';
+  const sim = r.similarity ?? 0;
+  const time = new Date(r.timestamp).toLocaleTimeString('vi-VN');
+  const why = REASONS[r.reason] || r.reason || 'Từ chối';
+
+  drawBox(r.bbox, color, ok ? `${r.full_name} · ${(sim * 100).toFixed(1)}%` : 'Không hợp lệ');
+  setMsg(ok ? r.full_name : 'Không chấm công được', ok ? `Mã NV: ${r.employee_id}` : why, color);
+  $('time').textContent = time;
+  $('simTxt').textContent = (sim * 100).toFixed(1) + '%';
+  $('simBar').style.width = Math.min(sim * 100, 100) + '%';
+  $('simBar').style.background = color;
+  addHistory(ok ? r.full_name : why, time, color, ok);
+  if (ok) speak('Xin chào ' + r.full_name);
+
+  const wait = ok ? COOLDOWN_MS : 2500;
+  pauseUntil = Date.now() + wait;
+  clearTimeout(resetTimer);
+  resetTimer = setTimeout(() => { clearBox(); setIdle(); }, wait);
+}
+
+// ===== Vòng lặp quét =====
+async function scan() {
+  if (busy || Date.now() < pauseUntil) return;
+  busy = true;
+  try {
+    const blob = await grab();
+    if (!blob) return;
+    const fd = new FormData();
+    fd.append('file', blob, 'frame.jpg');
+    fd.append('device_id', DEVICE_ID);
+    fd.append('lat', LAT); fd.append('lon', LON);
+    const res = await fetch(API, {method: 'POST', body: fd});
+    if (!res.ok) throw new Error(res.status);
+    handle(await res.json());
+  } catch (e) {
+    setMsg('Mất kết nối máy chủ', 'Đang thử lại…', '#eab308');
+  } finally { busy = false; }
+}
+setInterval(scan, SCAN_MS);
+
+// ===== Chế độ demo giao diện: mở /kiosk.html?demo=1, bấm phím 1 / 2 / 3 =====
+if (DEMO) {
+  document.title += ' [DEMO UI]';
+  const fake = {
+    '1': {matched: true,  employee_id: 'NV0002', full_name: 'Nhân viên mẫu', similarity: 0.93, reason: 'accepted', bbox: [200, 60, 440, 300]},
+    '2': {matched: false, employee_id: null, full_name: null, similarity: 0.31, reason: 'spoof', bbox: [200, 60, 440, 300]},
+    '3': {matched: false, employee_id: null, full_name: null, similarity: 0.21, reason: 'low_similarity', bbox: [200, 60, 440, 300]},
+  };
+  addEventListener('keydown', e => { const f = fake[e.key]; if (f) handle({...f, timestamp: new Date().toISOString()}); });
+}
+</script>
+</body>
+</html>
