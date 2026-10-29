@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin - Cafe Biển Xanh HRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 p-6">
+  <h1 class="text-2xl font-bold mb-1">Bảng điều khiển chấm công</h1>
+  <p id="date" class="text-slate-400 mb-6"></p>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-slate-800 rounded-xl p-4"><p class="text-slate-400">Tổng nhân viên</p><p id="k-total" class="text-3xl font-bold">-</p></div>
+    <div class="bg-slate-800 rounded-xl p-4"><p class="text-slate-400">Có mặt</p><p id="k-present" class="text-3xl font-bold text-green-400">-</p></div>
+    <div class="bg-slate-800 rounded-xl p-4"><p class="text-slate-400">Đi trễ</p><p id="k-late" class="text-3xl font-bold text-yellow-400">-</p></div>
+    <div class="bg-slate-800 rounded-xl p-4"><p class="text-slate-400">Vắng</p><p id="k-absent" class="text-3xl font-bold text-red-400">-</p></div>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="bg-slate-800 rounded-xl p-4 h-80"><canvas id="c-share"></canvas></div>
+    <div class="bg-slate-800 rounded-xl p-4 h-80"><canvas id="c-hour"></canvas></div>
+    <div class="bg-slate-800 rounded-xl p-4 h-80"><canvas id="c-branch"></canvas></div>
+    <div class="bg-slate-800 rounded-xl p-4 h-80"><canvas id="c-late"></canvas></div>
+  </div>
+
+<script>
+const $ = id => document.getElementById(id);
+const get = u => fetch(u).then(r => r.json());
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.maintainAspectRatio = false;
+
+function title(t) { return {display: true, text: t, color: '#e2e8f0', font: {size: 16}}; }
+function bar(id, d, t, horizontal = false) {
+  new Chart($(id), {type: 'bar',
+    data: {labels: d.labels, datasets: [{data: d.values, backgroundColor: '#38bdf8'}]},
+    options: {indexAxis: horizontal ? 'y' : 'x', plugins: {legend: {display: false}, title: title(t)}}});
+}
+
+(async () => {
+  const s = await get('/api/analytics/summary');
+  $('date').textContent = 'Dữ liệu ngày ' + s.date;
+  $('k-total').textContent = s.total_employees;
+  $('k-present').textContent = s.present;
+  $('k-late').textContent = s.late;
+  $('k-absent').textContent = s.absent;
+
+  const sh = await get('/api/analytics/status-share');
+  new Chart($('c-share'), {type: 'doughnut',
+    data: {labels: sh.labels, datasets: [{data: sh.values, backgroundColor: ['#22c55e', '#eab308', '#ef4444', '#a855f7', '#38bdf8']}]},
+    options: {plugins: {title: title('Tỷ lệ đúng giờ / đi trễ / vắng')}}});
+
+  const bd = await get('/api/analytics/by-date');
+  new Chart($('c-hour'), {type: 'line',
+    data: {labels: bd.labels, datasets: [
+      {label: 'Có mặt', data: bd.present, borderColor: '#22c55e', tension: 0.3},
+      {label: 'Đi trễ', data: bd.late, borderColor: '#eab308', tension: 0.3}]},
+    options: {plugins: {title: title('Lượt chấm công theo ngày')}}});
+  bar('c-branch', await get('/api/analytics/by-branch'), 'Số phút đi trễ trung bình theo chi nhánh');
+  bar('c-late', await get('/api/analytics/late-top'), 'Top 10 nhân viên đi trễ nhiều nhất (phút)', true);
+})();
+</script>
+</body>
+</html>
