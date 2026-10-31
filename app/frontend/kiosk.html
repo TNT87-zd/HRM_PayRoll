@@ -62,11 +62,19 @@ const DEVICE_ID = 'CN01-TB01';          // mã thiết bị thật trong attenda
 const LAT = 16.0471, LON = 108.2208;    // toạ độ chi nhánh Hải Châu (CN01)
 const SCAN_MS = 1500;                   // chu kỳ gửi khung hình
 const COOLDOWN_MS = 5000;               // nghỉ sau khi chấm công thành công
-const REASONS = {                       // đổi cho khớp các giá trị `reason` backend trả về
+const REASONS = {
   accepted: 'Hợp lệ',
+  below_threshold: 'Không khớp nhân viên nào (người lạ)',
+  ambiguous_margin: 'Khó phân biệt, hãy thử lại',
+  empty_gallery: 'Chưa có dữ liệu khuôn mặt',
+  outside_geofence: 'Ngoài phạm vi chi nhánh',
+  engine_unavailable: 'Máy chủ chưa tải xong mô hình nhận diện',
   spoof: 'Nghi giả mạo (ảnh/video)',
   low_similarity: 'Không khớp nhân viên nào',
-  outside_geofence: 'Ngoài phạm vi chi nhánh',
+};
+const HINTS = {   // trạng thái cần người dùng chỉnh lại, không ghi vào lịch sử
+  low_quality: 'Ảnh chưa đạt: nhìn thẳng, đủ sáng',
+  multiple_faces: 'Chỉ một người đứng trước camera',
   duplicate: 'Đã chấm công gần đây',
 };
 const DEMO = new URLSearchParams(location.search).has('demo');
@@ -148,6 +156,16 @@ function addHistory(label, time, color, ok) {
 // ===== Xử lý kết quả từ API =====
 function handle(r) {
   if (r.reason === 'no_face') { clearBox(); setIdle(); return; }
+  if (HINTS[r.reason]) {
+    const c = '#eab308', sm = r.similarity ?? 0;
+    drawBox(r.bbox, c, r.full_name ? `${r.full_name} · ${(sm * 100).toFixed(1)}%` : 'Chưa đạt');
+    setMsg(r.full_name || 'Chưa nhận diện được', HINTS[r.reason], c);
+    if (sm) { $('simTxt').textContent = (sm * 100).toFixed(1) + '%'; $('simBar').style.width = Math.min(sm * 100, 100) + '%'; $('simBar').style.background = c; }
+    pauseUntil = Date.now() + 1000;
+    clearTimeout(resetTimer);
+    resetTimer = setTimeout(() => { clearBox(); setIdle(); }, 2500);
+    return;
+  }
   const ok = r.matched;
   const color = ok ? '#22c55e' : '#ef4444';
   const sim = r.similarity ?? 0;
