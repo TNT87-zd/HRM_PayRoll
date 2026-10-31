@@ -1,9 +1,20 @@
+import io
 from pathlib import Path
+
 import pandas as pd
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 DATA = Path(__file__).resolve().parents[4] / "data" / "clean"
+
+COLS = ["work_date", "employee_id", "full_name", "branch_name", "shift_id", "status",
+        "check_in_ts", "check_out_ts", "late_minutes", "early_leave_minutes",
+        "worked_hours", "ot_hours"]
+VN = {"work_date": "Ngày", "employee_id": "Mã NV", "full_name": "Họ tên",
+      "branch_name": "Chi nhánh", "shift_id": "Ca", "status": "Trạng thái",
+      "check_in_ts": "Giờ vào", "check_out_ts": "Giờ ra", "late_minutes": "Phút trễ",
+      "early_leave_minutes": "Phút về sớm", "worked_hours": "Giờ làm", "ot_hours": "Giờ OT"}
 
 
 def _load():
@@ -11,6 +22,42 @@ def _load():
     events = pd.read_csv(DATA / "attendance_events.csv", parse_dates=["ts"])
     branches = pd.read_csv(DATA / "branches.csv")
     return daily, events, branches
+
+
+def _names():
+    try:
+        e = pd.read_csv(DATA / "employees.csv")
+        col = next((c for c in ("full_name", "name", "ho_ten") if c in e.columns), None)
+        if col:
+            return dict(zip(e["employee_id"], e[col]))
+    except Exception:
+        pass
+    return {}
+
+
+def _filtered(branch_id=None, start=None, end=None, only_late=False):
+    d, _, b = _load()
+    if branch_id:
+        d = d[d["branch_id"] == branch_id]
+    if start:
+        d = d[d["work_date"] >= pd.to_datetime(start)]
+    if end:
+        d = d[d["work_date"] <= pd.to_datetime(end)]
+    if only_late:
+        d = d[d["late_minutes"] > 0]
+    d = d.merge(b[["branch_id", "branch_name"]], on="branch_id", how="left")
+    d["full_name"] = d["employee_id"].map(_names()).fillna("")
+    return d.sort_values(["work_date", "employee_id"], ascending=[False, True])
+
+
+@router.get("/meta")
+def meta():
+    d, _, b = _load()
+    return {
+        "branches": [{"id": r.branch_id, "name": r.branch_name} for r in b.itertuples()],
+        "min_date": str(d["work_date"].min().date()),
+        "max_date": str(d["work_date"].max().date()),
+    }
 
 
 @router.get("/summary")
@@ -73,3 +120,45 @@ def by_date():
         "present": g["present"].tolist(),
         "late": g["late"].tolist(),
     }
+
+
+@router.get("/heatmap")
+def heatmap(branch_id: str | None = None):
+    d, _, _ = _load()
+    if branch_id:
+        d = d[d["branch_id"] == branch_id]
+    d = d.assign(v=d["late_minutes"].where(d["status"] == "present", -1))
+    p = d.pivot_table(index="employee_id", columns="work_date", values="v", aggfunc="max")
+    names = _names()
+    rows = [
+        {"id": emp, "name": names.get(emp, ""),
+         "values": [None if pd.isna(x) else float(x) for x in r.tolist()]}
+        for emp, r in p.iterrows()
+    ]
+    return {"dates": [x.strftime("%d/%m") for x in p.columns], "rows": rows}
+
+
+@router.get("/attendance")
+def attendance(branch_id: str | None = None, start: str | None = None,
+               end: str | None = None, only_late: bool = False, limit: int = 300):
+    df = _filtered(branch_id, start, end, only_late)
+    out = df[COLS].head(limit).copy()
+    out["work_date"] = out["work_date"].dt.strftime("%Y-%m-%d")
+    out = out.astype(object).where(out.notna(), None)
+    return {"total": int(len(df)), "rows": out.to_dict("records")}
+
+
+@router.get("/export")
+def export(branch_id: str | None = None, start: str | None = None,
+           end: str | None = None, only_late: bool = False):
+    df = _filtered(branch_id, start, end, only_late)[COLS].copy()
+    df["work_date"] = df["work_date"].dt.strftime("%Y-%m-%d")
+    df = df.rename(columns=VN)
+    buf = io.BytesIO()
+    df.to_excel(buf, index=False, sheet_name="Chấm công")
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="cham_cong.xlsx"'},
+    )

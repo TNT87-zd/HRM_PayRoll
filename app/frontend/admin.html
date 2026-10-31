@@ -2,31 +2,95 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin - Cafe Biển Xanh HRM</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .tab-btn { padding: .45rem 1rem; border-radius: .5rem; color: #94a3b8; cursor: pointer; }
+    .tab-btn.active { background: #0ea5e9; color: #0f172a; font-weight: 700; }
+    .hm { border-collapse: separate; border-spacing: 2px; }
+    .hm td.c { width: 18px; height: 18px; border-radius: 3px; }
+    .hm td.n { font-size: 12px; white-space: nowrap; padding-right: 10px; position: sticky; left: 0; background: #1e293b; }
+    .hm th.d { font-weight: 400; color: #94a3b8; font-size: 10px; writing-mode: vertical-rl; padding-bottom: 4px; }
+  </style>
 </head>
 <body class="bg-slate-900 text-slate-100 p-6">
-  <h1 class="text-2xl font-bold mb-1">Bảng điều khiển chấm công</h1>
-  <p id="date" class="text-slate-400 mb-6"></p>
-
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-    <div class="bg-slate-800 rounded-xl p-4"><p class="text-slate-400">Tổng nhân viên</p><p id="k-total" class="text-3xl font-bold">-</p></div>
-    <div class="bg-slate-800 rounded-xl p-4"><p class="text-slate-400">Có mặt</p><p id="k-present" class="text-3xl font-bold text-green-400">-</p></div>
-    <div class="bg-slate-800 rounded-xl p-4"><p class="text-slate-400">Đi trễ</p><p id="k-late" class="text-3xl font-bold text-yellow-400">-</p></div>
-    <div class="bg-slate-800 rounded-xl p-4"><p class="text-slate-400">Vắng</p><p id="k-absent" class="text-3xl font-bold text-red-400">-</p></div>
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+    <div>
+      <h1 class="text-2xl font-bold">Bảng điều khiển chấm công</h1>
+      <p id="date" class="text-slate-400"></p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <button class="tab-btn active" data-tab="overview">Tổng quan</button>
+      <button class="tab-btn" data-tab="attendance">Chuyên cần</button>
+      <a href="/kiosk.html" class="tab-btn border border-slate-600">Mở Kiosk</a>
+      <a href="/" class="tab-btn">Trang chủ</a>
+    </div>
   </div>
 
-  <div class="grid md:grid-cols-2 gap-4">
-    <div class="bg-slate-800 rounded-xl p-4 h-80"><canvas id="c-share"></canvas></div>
-    <div class="bg-slate-800 rounded-xl p-4 h-80"><canvas id="c-hour"></canvas></div>
-    <div class="bg-slate-800 rounded-xl p-4 h-80"><canvas id="c-branch"></canvas></div>
-    <div class="bg-slate-800 rounded-xl p-4 h-80"><canvas id="c-late"></canvas></div>
-  </div>
+  <!-- TAB 1: TỔNG QUAN -->
+  <section id="tab-overview" class="tab">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-slate-800 rounded-xl p-4"><p class="text-slate-400">Tổng nhân viên</p><p id="k-total" class="text-3xl font-bold">-</p></div>
+      <div class="bg-slate-800 rounded-xl p-4"><p class="text-slate-400">Có mặt</p><p id="k-present" class="text-3xl font-bold text-green-400">-</p></div>
+      <div class="bg-slate-800 rounded-xl p-4"><p class="text-slate-400">Đi trễ</p><p id="k-late" class="text-3xl font-bold text-yellow-400">-</p></div>
+      <div class="bg-slate-800 rounded-xl p-4"><p class="text-slate-400">Vắng</p><p id="k-absent" class="text-3xl font-bold text-red-400">-</p></div>
+    </div>
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="bg-slate-800 rounded-xl p-4 h-80"><canvas id="c-share"></canvas></div>
+      <div class="bg-slate-800 rounded-xl p-4 h-80"><canvas id="c-hour"></canvas></div>
+      <div class="bg-slate-800 rounded-xl p-4 h-80"><canvas id="c-branch"></canvas></div>
+      <div class="bg-slate-800 rounded-xl p-4 h-80"><canvas id="c-late"></canvas></div>
+    </div>
+  </section>
+
+  <!-- TAB 2: CHUYÊN CẦN -->
+  <section id="tab-attendance" class="tab hidden">
+    <div class="bg-slate-800 rounded-xl p-4 mb-4 flex flex-wrap items-end gap-3">
+      <label class="text-sm text-slate-400">Chi nhánh<br>
+        <select id="f-branch" class="bg-slate-700 text-slate-100 rounded px-2 py-1 mt-1"><option value="">Tất cả</option></select></label>
+      <label class="text-sm text-slate-400">Từ ngày<br>
+        <input type="date" id="f-start" class="bg-slate-700 text-slate-100 rounded px-2 py-1 mt-1"></label>
+      <label class="text-sm text-slate-400">Đến ngày<br>
+        <input type="date" id="f-end" class="bg-slate-700 text-slate-100 rounded px-2 py-1 mt-1"></label>
+      <label class="text-sm text-slate-300 flex items-center gap-2 pb-1"><input type="checkbox" id="f-late"> Chỉ hiện đi trễ</label>
+      <button id="btn-filter" class="bg-sky-500 text-slate-900 font-bold rounded px-4 py-1.5">Lọc</button>
+      <button id="btn-export" class="bg-emerald-500 text-slate-900 font-bold rounded px-4 py-1.5">Xuất Excel</button>
+    </div>
+
+    <div class="bg-slate-800 rounded-xl p-4 mb-4">
+      <h2 class="font-bold">Bản đồ nhiệt chuyên cần (nhân viên × ngày)</h2>
+      <p class="text-sm text-slate-400 mb-2">Mỗi ô là một ngày làm của một nhân viên. Màu càng đỏ, đi trễ càng nhiều.</p>
+      <div id="legend" class="flex flex-wrap gap-4 text-xs text-slate-300 mb-3"></div>
+      <div id="heatmap" class="overflow-auto max-h-[28rem]"></div>
+    </div>
+
+    <div class="bg-slate-800 rounded-xl p-4">
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="font-bold">Nhật ký chấm công</h2>
+        <p id="tbl-info" class="text-sm text-slate-400"></p>
+      </div>
+      <div class="overflow-auto max-h-[28rem]">
+        <table class="w-full text-sm">
+          <thead class="sticky top-0 bg-slate-700 text-left">
+            <tr>
+              <th class="p-2">Ngày</th><th class="p-2">Mã NV</th><th class="p-2">Họ tên</th>
+              <th class="p-2">Chi nhánh</th><th class="p-2">Ca</th><th class="p-2">Giờ vào</th>
+              <th class="p-2">Giờ ra</th><th class="p-2">Trễ (phút)</th><th class="p-2">Giờ làm</th>
+              <th class="p-2">OT</th><th class="p-2">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 
 <script>
 const $ = id => document.getElementById(id);
-const get = u => fetch(u).then(r => r.json());
+const get = u => fetch(u).then(r => { if (!r.ok) throw new Error(u); return r.json(); });
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 Chart.defaults.color = '#94a3b8';
 Chart.defaults.maintainAspectRatio = false;
 
@@ -37,7 +101,8 @@ function bar(id, d, t, horizontal = false) {
     options: {indexAxis: horizontal ? 'y' : 'x', plugins: {legend: {display: false}, title: title(t)}}});
 }
 
-(async () => {
+/* ---------- Tab Tổng quan ---------- */
+async function loadOverview() {
   const s = await get('/api/analytics/summary');
   $('date').textContent = 'Dữ liệu ngày ' + s.date;
   $('k-total').textContent = s.total_employees;
@@ -56,9 +121,100 @@ function bar(id, d, t, horizontal = false) {
       {label: 'Có mặt', data: bd.present, borderColor: '#22c55e', tension: 0.3},
       {label: 'Đi trễ', data: bd.late, borderColor: '#eab308', tension: 0.3}]},
     options: {plugins: {title: title('Lượt chấm công theo ngày')}}});
+
   bar('c-branch', await get('/api/analytics/by-branch'), 'Số phút đi trễ trung bình theo chi nhánh');
   bar('c-late', await get('/api/analytics/late-top'), 'Top 10 nhân viên đi trễ nhiều nhất (phút)', true);
-})();
+}
+
+/* ---------- Tab Chuyên cần ---------- */
+const LEVELS = [
+  {label: 'Đúng giờ', color: '#22c55e'},
+  {label: 'Trễ 1–5 phút', color: '#eab308'},
+  {label: 'Trễ 6–15 phút', color: '#f97316'},
+  {label: 'Trễ trên 15 phút', color: '#ef4444'},
+  {label: 'Vắng / không đi làm', color: '#64748b'},
+];
+function colorOf(v) {
+  if (v === null) return null;
+  if (v < 0) return LEVELS[4].color;
+  if (v === 0) return LEVELS[0].color;
+  if (v <= 5) return LEVELS[1].color;
+  if (v <= 15) return LEVELS[2].color;
+  return LEVELS[3].color;
+}
+$('legend').innerHTML = LEVELS.map(l =>
+  `<span class="flex items-center gap-1"><span style="background:${l.color};width:12px;height:12px;border-radius:3px;display:inline-block"></span>${l.label}</span>`).join('');
+
+function qs() {
+  const p = new URLSearchParams();
+  if ($('f-branch').value) p.set('branch_id', $('f-branch').value);
+  if ($('f-start').value) p.set('start', $('f-start').value);
+  if ($('f-end').value) p.set('end', $('f-end').value);
+  if ($('f-late').checked) p.set('only_late', 'true');
+  return p;
+}
+
+function renderHeatmap(h) {
+  let html = '<table class="hm"><thead><tr><th></th>' +
+    h.dates.map(d => `<th class="d">${esc(d)}</th>`).join('') + '</tr></thead><tbody>';
+  for (const r of h.rows) {
+    html += `<tr><td class="n">${esc(r.id)}${r.name ? ' · ' + esc(r.name) : ''}</td>`;
+    r.values.forEach((v, i) => {
+      const c = colorOf(v);
+      if (!c) { html += '<td class="c" style="background:#0f172a"></td>'; return; }
+      const tip = v < 0 ? 'Vắng/không đi làm' : v + ' phút trễ';
+      html += `<td class="c" style="background:${c}" title="${esc(r.id + ' · ' + h.dates[i] + ': ' + tip)}"></td>`;
+    });
+    html += '</tr>';
+  }
+  $('heatmap').innerHTML = html + '</tbody></table>';
+}
+
+function renderTable(t) {
+  $('tbl-info').textContent = `Hiển thị ${t.rows.length} / ${t.total} dòng`;
+  $('tbl-body').innerHTML = t.rows.map(r => {
+    const late = r.late_minutes > 0;
+    return `<tr class="border-b border-slate-700 ${late ? 'text-yellow-300' : ''}">
+      <td class="p-2">${esc(r.work_date)}</td><td class="p-2">${esc(r.employee_id)}</td>
+      <td class="p-2">${esc(r.full_name)}</td><td class="p-2">${esc(r.branch_name)}</td>
+      <td class="p-2">${esc(r.shift_id)}</td>
+      <td class="p-2">${esc((r.check_in_ts || '').slice(11, 19))}</td>
+      <td class="p-2">${esc((r.check_out_ts || '').slice(11, 19))}</td>
+      <td class="p-2">${esc(r.late_minutes)}</td><td class="p-2">${esc(r.worked_hours)}</td>
+      <td class="p-2">${esc(r.ot_hours)}</td><td class="p-2">${esc(r.status)}</td></tr>`;
+  }).join('');
+}
+
+async function applyFilters() {
+  const hp = new URLSearchParams();
+  if ($('f-branch').value) hp.set('branch_id', $('f-branch').value);
+  const [h, t] = await Promise.all([
+    get('/api/analytics/heatmap?' + hp), get('/api/analytics/attendance?' + qs())]);
+  renderHeatmap(h); renderTable(t);
+}
+
+async function initAttendance() {
+  const m = await get('/api/analytics/meta');
+  m.branches.forEach(b => $('f-branch').add(new Option(b.name, b.id)));
+  ['f-start', 'f-end'].forEach(id => { $(id).min = m.min_date; $(id).max = m.max_date; });
+  $('btn-filter').onclick = applyFilters;
+  $('btn-export').onclick = () => { location.href = '/api/analytics/export?' + qs(); };
+  await applyFilters();
+}
+
+/* ---------- Chuyển tab ---------- */
+const loaded = {};
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(e => e.classList.toggle('hidden', e.id !== 'tab-' + name));
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  if (!loaded[name]) {
+    loaded[name] = true;
+    (name === 'attendance' ? initAttendance : loadOverview)().catch(console.error);
+  }
+  history.replaceState(null, '', '#' + name);
+}
+document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+showTab(location.hash === '#attendance' ? 'attendance' : 'overview');
 </script>
 </body>
 </html>
