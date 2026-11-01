@@ -76,6 +76,7 @@ const HINTS = {   // trạng thái cần người dùng chỉnh lại, không gh
   low_quality: 'Ảnh chưa đạt: nhìn thẳng, đủ sáng',
   multiple_faces: 'Chỉ một người đứng trước camera',
   duplicate: 'Đã chấm công gần đây',
+  verifying: 'Đang xác minh, giữ yên khuôn mặt…',
 };
 const DEMO = new URLSearchParams(location.search).has('demo');
 
@@ -161,7 +162,7 @@ function handle(r) {
     drawBox(r.bbox, c, r.full_name ? `${r.full_name} · ${(sm * 100).toFixed(1)}%` : 'Chưa đạt');
     setMsg(r.full_name || 'Chưa nhận diện được', HINTS[r.reason], c);
     if (sm) { $('simTxt').textContent = (sm * 100).toFixed(1) + '%'; $('simBar').style.width = Math.min(sm * 100, 100) + '%'; $('simBar').style.background = c; }
-    pauseUntil = Date.now() + 1000;
+    pauseUntil = r.reason === 'verifying' ? 0 : Date.now() + 1000;
     clearTimeout(resetTimer);
     resetTimer = setTimeout(() => { clearBox(); setIdle(); }, 2500);
     return;
@@ -198,9 +199,12 @@ async function scan() {
     fd.append('file', blob, 'frame.jpg');
     fd.append('device_id', DEVICE_ID);
     fd.append('lat', LAT); fd.append('lon', LON);
+    const t0 = performance.now();
     const res = await fetch(API, {method: 'POST', body: fd});
     if (!res.ok) throw new Error(res.status);
-    handle(await res.json());
+    const data = await res.json();
+    $('device').textContent = 'Thiết bị ' + DEVICE_ID + ' · Độ trễ nhận diện ' + Math.round(performance.now() - t0) + ' ms';
+    handle(data);
   } catch (e) {
     setMsg('Mất kết nối máy chủ', 'Đang thử lại…', '#eab308');
   } finally { busy = false; }
