@@ -10,6 +10,7 @@ class RecognizeResponse(BaseModel):
     liveness_score: float | None = None
     distance_m: float | None = None
     timestamp: str | None = None
+    status_msg: str | None = None
 
 class EnrollResponse(BaseModel):
     ok: bool

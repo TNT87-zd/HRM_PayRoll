@@ -18,7 +18,7 @@ THRESHOLD = 0.55          # ngưỡng cosine theo plan
 MIN_MARGIN = 0.08
 DUPLICATE_WINDOW_S = 60   # cùng 1 người trong 60 giây chỉ ghi nhận 1 lần
 VOTES_REQUIRED = 3        # cần 3 khung hình liên tiếp cùng khớp 1 người mới chấp nhận
-VOTE_WINDOW_S = 1.5       # các khung hình phải cách nhau không quá 1,5 giây
+VOTE_WINDOW_S = 3.0       # các khung hình phải cách nhau không quá 1,5 giây
 
 
 def _load_names() -> dict[str, str]:
