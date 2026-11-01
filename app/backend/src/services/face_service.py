@@ -17,6 +17,8 @@ EMPLOYEES_CSV = PROJECT_ROOT / "data" / "clean" / "employees.csv"
 THRESHOLD = 0.55          # ngưỡng cosine theo plan
 MIN_MARGIN = 0.08
 DUPLICATE_WINDOW_S = 60   # cùng 1 người trong 60 giây chỉ ghi nhận 1 lần
+VOTES_REQUIRED = 3        # cần 3 khung hình liên tiếp cùng khớp 1 người mới chấp nhận
+VOTE_WINDOW_S = 1.5       # các khung hình phải cách nhau không quá 1,5 giây
 
 
 def _load_names() -> dict[str, str]:
@@ -37,6 +39,7 @@ class FaceService:
         self.names: dict[str, str] = {}
         self.error: str | None = None
         self._last_seen: dict[str, float] = {}
+        self._votes: dict[str, list] = {}
 
     def startup(self, db=None):
         """Gọi 1 lần ở lifespan: nạp model + gallery. Lỗi thì server vẫn chạy."""
@@ -59,7 +62,7 @@ class FaceService:
         for r in results:
             logger.info("Đăng ký %s: %s - %s", r.employee_id, "OK" if r.success else "THẤT BẠI", r.message)
 
-    def recognize(self, img_bgr: np.ndarray, device_id: str = "", lat=None, lon=None) -> dict:
+    def _recognize_once(self, img_bgr: np.ndarray, device_id: str = "", lat=None, lon=None) -> dict:
         res = {
             "matched": False, "employee_id": None, "full_name": None,
             "similarity": 0.0, "reason": "", "bbox": None,
@@ -104,15 +107,39 @@ class FaceService:
             res["reason"] = "outside_geofence"
             return res
 
+        res["matched"] = True
+        res["reason"] = "candidate"   # ứng viên của 1 khung hình, chờ xác nhận nhiều khung
+        return res
+
+    def recognize(self, img_bgr: np.ndarray, device_id: str = "", lat=None, lon=None) -> dict:
+        """Chỉ chấp nhận khi VOTES_REQUIRED khung hình liên tiếp cùng khớp 1 nhân viên."""
+        res = self._recognize_once(img_bgr, device_id, lat, lon)
         now = time.monotonic()
+
+        if res["reason"] != "candidate":
+            self._votes.pop(device_id, None)   # khung không khớp: bắt đầu đếm lại
+            return res
+
+        emp = res["employee_id"]
+        votes = [v for v in self._votes.get(device_id, [])
+                 if v[0] == emp and now - v[2] <= VOTE_WINDOW_S]
+        votes.append((emp, res["similarity"], now))
+        votes = votes[-VOTES_REQUIRED:]
+        self._votes[device_id] = votes
+
         last = self._last_seen.get(emp)
         if last is not None and now - last < DUPLICATE_WINDOW_S:
-            res["matched"] = True
             res["reason"] = "duplicate"
             return res
 
+        if len(votes) < VOTES_REQUIRED:
+            res["matched"] = False
+            res["reason"] = "verifying"
+            return res
+
+        res["similarity"] = round(sum(v[1] for v in votes) / len(votes), 3)
+        self._votes.pop(device_id, None)
         self._last_seen[emp] = now
-        res["matched"] = True
         res["reason"] = "accepted"
         return res
 
