@@ -1,4 +1,4 @@
-﻿leave_id,employee_id,branch_id,leave_type,start_date,end_date,days_requested,submitted_date,status
+leave_id,employee_id,branch_id,leave_type,start_date,end_date,days_requested,submitted_date,status
 LV00001,NV0019,CN02,viec_rieng_khong_luong,2024-10-01,2024-10-02,2,2024-09-24,approved
 LV00002,NV0004,CN01,viec_rieng_khong_luong,2024-10-02,2024-10-03,2,2024-09-25,approved
 LV00003,NV0010,CN03,om,2024-10-02,2024-10-04,3,2024-10-02,approved

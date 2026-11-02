@@ -67,3 +67,13 @@ class RecognizeResponse(BaseModel):
     timestamp: str | None = None
     recorded: bool = False
     gallery_version: str = ""
+    status_msg: str | None = None
+
+
+class EnrollResponse(BaseModel):
+    ok: bool
+    employee_id: str
+    num_valid: int = 0
+    mean_intra_similarity: float = 0.0
+    message: str = ""
+

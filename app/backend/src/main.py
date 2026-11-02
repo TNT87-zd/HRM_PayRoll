@@ -2,6 +2,7 @@ import importlib.util
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from config import PROJECT_ROOT, Settings
@@ -44,6 +45,14 @@ def create_app(settings=None, face_engine=None, pose_estimator=None):
     application = FastAPI(title="HRM Payroll API", lifespan=lifespan)
     application.state.settings = settings
     application.state.login_attempts = {}
+
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @application.middleware("http")
     async def request_context(request: Request, call_next):
