@@ -5,10 +5,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles          # MỚI
 from routers import kiosk, employees, ws, analytics  # MỚI: thêm analytics
+from services.face_service import face_service
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # TODO: với SessionLocal() as db: face_service.startup(db)
+    face_service.startup()
     yield
 
 app = FastAPI(title="HRM Payroll API", lifespan=lifespan)

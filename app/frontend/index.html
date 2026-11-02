@@ -10,17 +10,30 @@
   <h1 class="text-3xl md:text-4xl font-bold text-center">Hệ thống chấm công thông minh</h1>
   <p class="text-slate-400 mt-2 mb-10 text-center">Cafe Biển Xanh · Nhận diện khuôn mặt &amp; tính lương tự động</p>
 
-  <div class="grid md:grid-cols-2 gap-6 w-full max-w-3xl">
-    <a href="/kiosk.html" class="block bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 hover:border-sky-400 rounded-2xl p-8 transition">
-      <div class="text-5xl mb-4">📸</div>
-      <h2 class="text-2xl font-bold">Kiosk chấm công</h2>
-      <p class="text-slate-400 mt-2">Màn hình tại cửa hàng: quét khuôn mặt để chấm công vào/ra.</p>
-      <p class="text-xs text-slate-500 mt-4">Cần cho phép trình duyệt dùng camera</p>
+  <div class="grid md:grid-cols-3 gap-6 w-full max-w-5xl">
+    <a href="/kiosk.html" class="block bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 hover:border-sky-400 rounded-2xl p-6 transition flex flex-col justify-between">
+      <div>
+        <div class="text-4xl mb-3">📸</div>
+        <h2 class="text-xl font-bold">Kiosk chấm công</h2>
+        <p class="text-slate-400 mt-2 text-sm">Màn hình tại cửa hàng: quét khuôn mặt để chấm công vào/ra tự động.</p>
+      </div>
+      <p class="text-xs text-slate-500 mt-4">Yêu cầu quyền truy cập Camera</p>
     </a>
-    <a href="/admin.html" class="block bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 hover:border-emerald-400 rounded-2xl p-8 transition">
-      <div class="text-5xl mb-4">📊</div>
-      <h2 class="text-2xl font-bold">Quản trị (Admin)</h2>
-      <p class="text-slate-400 mt-2">Dashboard, bản đồ nhiệt chuyên cần, nhật ký chấm công, xuất Excel.</p>
+    <a href="/enroll.html" class="block bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 hover:border-indigo-400 rounded-2xl p-6 transition flex flex-col justify-between">
+      <div>
+        <div class="text-4xl mb-3">👤</div>
+        <h2 class="text-xl font-bold">Đăng ký FaceID</h2>
+        <p class="text-slate-400 mt-2 text-sm">Chụp 5 góc khuôn mặt (thẳng, trái, phải, ngước, cúi), trích xuất vector ArcFace 512D &amp; nạp nhân viên mới.</p>
+      </div>
+      <p class="text-xs text-indigo-400 mt-4 font-semibold">Module 1 · Đăng ký sinh trắc học</p>
+    </a>
+    <a href="/admin.html" class="block bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 hover:border-emerald-400 rounded-2xl p-6 transition flex flex-col justify-between">
+      <div>
+        <div class="text-4xl mb-3">📊</div>
+        <h2 class="text-xl font-bold">Quản trị (Admin)</h2>
+        <p class="text-slate-400 mt-2 text-sm">Dashboard thống kê, bản đồ nhiệt chuyên cần, nhật ký chấm công và xuất Excel.</p>
+      </div>
+      <p class="text-xs text-slate-500 mt-4">Dành cho HR &amp; Quản lý</p>
     </a>
   </div>
 

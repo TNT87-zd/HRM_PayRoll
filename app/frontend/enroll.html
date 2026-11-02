@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đăng ký FaceID - Cafe Biển Xanh HRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.03); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .face-guide {
+      border: 3px dashed #38bdf8;
+      border-radius: 50% / 60%;
+      animation: pulse-ring 3s ease-in-out infinite;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
+    }
+    .video-mirror {
+      transform: scaleX(-1);
+    }
+    .slot-card {
+      transition: all 0.2s ease;
+    }
+    .slot-card:hover {
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-6">
+  <!-- Top Navigation -->
+  <header class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4 mb-6 pb-4 border-b border-slate-800">
+    <div class="flex items-center gap-3">
+      <span class="text-3xl">👤</span>
+      <div>
+        <h1 class="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+          Đăng ký khuôn mặt FaceID
+          <span class="text-xs bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-full font-normal">
+            Module 1 · ArcFace 512D
+          </span>
+        </h1>
+        <p class="text-slate-400 text-xs md:text-sm">Cafe Biển Xanh · Thu thập 5 góc ảnh &amp; nạp vector nhân viên mới</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 text-sm">
+      <a href="/kiosk.html" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-400 font-medium transition flex items-center gap-1.5">
+        <span>📸</span> Kiosk chấm công
+      </a>
+      <a href="/admin.html" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-medium transition flex items-center gap-1.5">
+        <span>📊</span> Quản trị
+      </a>
+      <a href="/" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium transition">
+        Trang chủ
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto grid lg:grid-cols-12 gap-6">
+    <!-- CỘT TRÁI: CHỌN NHÂN VIÊN & HƯỚNG DẪN (4 CỘT) -->
+    <div class="lg:col-span-4 flex flex-col gap-5">
+      <!-- Card Chọn Nhân Viên -->
+      <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-5 shadow-lg">
+        <h2 class="text-base font-bold text-white flex items-center gap-2 mb-3">
+          <span class="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">1</span>
+          Chọn thông tin nhân viên
+        </h2>
+
+        <div class="flex items-center gap-2 mb-3 text-xs">
+          <button id="modeSelect" class="flex-1 py-1 px-2.5 rounded bg-indigo-600 text-white font-semibold">
+            Danh sách có sẵn
+          </button>
+          <button id="modeManual" class="flex-1 py-1 px-2.5 rounded bg-slate-700 text-slate-300 font-semibold hover:bg-slate-600">
+            + Nhập mã mới
+          </button>
+        </div>
+
+        <!-- Mode 1: Chọn từ danh sách -->
+        <div id="selectBox" class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Nhân viên cần đăng ký FaceID</label>
+            <select id="empSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+              <option value="">-- Đang tải danh sách nhân sự... --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Mode 2: Nhập thủ công -->
+        <div id="manualBox" class="space-y-3 hidden">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Mã nhân viên (ví dụ NV0029)</label>
+            <input type="text" id="manualEmpId" placeholder="NV0029" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm uppercase text-slate-100 focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Họ và tên nhân viên</label>
+            <input type="text" id="manualEmpName" placeholder="Nguyễn Văn A" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <!-- Employee Info Display Badge -->
+        <div id="empCard" class="mt-4 p-3.5 bg-slate-900/80 rounded-xl border border-slate-700/80 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div id="empAvatar" class="w-10 h-10 rounded-full bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 flex items-center justify-center font-bold text-sm">
+              NV
+            </div>
+            <div>
+              <p id="empNameDisplay" class="font-bold text-sm text-slate-100">Chưa chọn nhân viên</p>
+              <p id="empRoleDisplay" class="text-xs text-slate-400">Mã NV: --- · Chi nhánh: ---</p>
+            </div>
+          </div>
+          <div id="empStatusBadge" class="text-right">
+            <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">Chưa có ảnh</span>
+          </div>
+        </div>
+
+        <!-- Consent Checkbox (Mục 4.1 & 10 PLAN.MD) -->
+        <div class="mt-4 pt-3 border-t border-slate-700/70">
+          <label class="flex items-start gap-2.5 cursor-pointer text-xs text-slate-300 select-none">
+            <input type="checkbox" id="chkConsent" checked class="mt-0.5 rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0">
+            <span>
+              <strong class="text-slate-200">Xác nhận đồng ý:</strong> Nhân viên đã đồng ý thu thập dữ liệu trích xuất vector khuôn mặt phục vụ chấm công tự động theo Nghị định 13/2023/NĐ-CP.
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Quy Trình 5 Góc Ảnh -->
+      <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-5 shadow-lg">
+        <h2 class="text-base font-bold text-white flex items-center gap-2 mb-3">
+          <span class="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">2</span>
+          5 tư thế chụp tiêu chuẩn
+        </h2>
+        <p class="text-xs text-slate-400 mb-3">Hệ thống yêu cầu chụp 5 góc mặt để thuật toán trích xuất vector centroid và bao quát góc nhìn tại Kiosk:</p>
+
+        <div class="space-y-2 text-xs">
+          <div id="poseGuide-0" class="pose-step p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/60 flex items-center gap-3">
+            <span class="text-lg">📸</span>
+            <div class="flex-1">
+              <p class="font-bold text-slate-200">1. Nhìn thẳng (Front)</p>
+              <p class="text-slate-400">Mắt nhìn thẳng camera, nét mặt tự nhiên, không che mặt.</p>
+            </div>
+            <span class="step-check text-slate-600 text-sm">○</span>
+          </div>
+
+          <div id="poseGuide-1" class="pose-step p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/60 flex items-center gap-3">
+            <span class="text-lg">👈</span>
+            <div class="flex-1">
+              <p class="font-bold text-slate-200">2. Nghiêng trái (Left)</p>
+              <p class="text-slate-400">Nghiêng nhẹ mặt sang trái khoảng 15° - 30°.</p>
+            </div>
+            <span class="step-check text-slate-600 text-sm">○</span>
+          </div>
+
+          <div id="poseGuide-2" class="pose-step p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/60 flex items-center gap-3">
+            <span class="text-lg">👉</span>
+            <div class="flex-1">
+              <p class="font-bold text-slate-200">3. Nghiêng phải (Right)</p>
+              <p class="text-slate-400">Nghiêng nhẹ mặt sang phải khoảng 15° - 30°.</p>
+            </div>
+            <span class="step-check text-slate-600 text-sm">○</span>
+          </div>
+
+          <div id="poseGuide-3" class="pose-step p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/60 flex items-center gap-3">
+            <span class="text-lg">👆</span>
+            <div class="flex-1">
+              <p class="font-bold text-slate-200">4. Ngước lên (Up)</p>
+              <p class="text-slate-400">Ngước nhẹ cằm lên trên khoảng 15°.</p>
+            </div>
+            <span class="step-check text-slate-600 text-sm">○</span>
+          </div>
+
+          <div id="poseGuide-4" class="pose-step p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/60 flex items-center gap-3">
+            <span class="text-lg">👇</span>
+            <div class="flex-1">
+              <p class="font-bold text-slate-200">5. Cúi nhẹ (Under)</p>
+              <p class="text-slate-400">Cúi nhẹ cằm xuống khoảng 15°.</p>
+            </div>
+            <span class="step-check text-slate-600 text-sm">○</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CỘT PHẢI: CAMERA STREAM, CHỤP ẢNH & KẾT QUẢ (8 CỘT) -->
+    <div class="lg:col-span-8 flex flex-col gap-5">
+      <!-- STUDIO CAMERA -->
+      <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-5 shadow-lg">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">3</span>
+              Studio Chụp Ảnh FaceID
+            </h2>
+            <p id="poseStatusBanner" class="text-xs text-sky-400 font-medium mt-0.5">
+              Tư thế đang chọn: <strong>Nhìn thẳng (Front)</strong>
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2 text-xs">
+            <select id="cameraSelect" class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-slate-300">
+              <option value="">Mặc định camera</option>
+            </select>
+            <button id="btnSound" class="bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded text-slate-300 font-medium">
+              🔊 Âm thanh: Bật
+            </button>
+          </div>
+        </div>
+
+        <!-- Khung Viewport Video -->
+        <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-700/80 flex items-center justify-center">
+          <video id="video" autoplay playsinline muted class="w-full h-full object-cover video-mirror"></video>
+          <canvas id="snapshotCanvas" class="hidden"></canvas>
+
+          <!-- Khung Face Guide Oval Overlay -->
+          <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div class="face-guide w-52 h-72 md:w-64 md:h-84 relative">
+              <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900/80 px-2 py-0.5 rounded text-[10px] text-sky-400 uppercase tracking-widest font-semibold border border-sky-400/40">
+                Đưa mặt vào khung
+              </div>
+            </div>
+          </div>
+
+          <!-- Đếm ngược to giữa màn hình -->
+          <div id="countdownBox" class="absolute inset-0 bg-black/60 flex items-center justify-center hidden pointer-events-none">
+            <span id="countdownNumber" class="text-7xl font-extrabold text-white animate-ping">3</span>
+          </div>
+
+          <!-- Banner thông báo trực quan trên Camera -->
+          <div id="camAlert" class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-slate-900/90 border border-slate-700 text-slate-200 text-xs px-4 py-1.5 rounded-full shadow-lg flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="camAlertText">Camera sẵn sàng · Căn chỉnh mặt vào khung oval</span>
+          </div>
+        </div>
+
+        <!-- Các Nút Điều Khiển Chụp -->
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <button id="btnAutoWizard" class="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-sky-500 hover:from-indigo-600 hover:to-sky-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition text-sm flex items-center gap-2">
+              <span>⚡</span> Bắt đầu tự động quét 5 góc
+            </button>
+            <button id="btnManualSnap" class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold rounded-xl transition text-sm flex items-center gap-1.5">
+              <span>📸</span> Chụp góc này
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 text-xs">
+            <label class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 rounded-lg cursor-pointer transition flex items-center gap-1.5">
+              <span>📁</span> Tải 5 ảnh từ máy
+              <input type="file" id="fileUploader" multiple accept="image/*" class="hidden">
+            </label>
+            <button id="btnResetPhotos" class="px-3 py-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition font-medium">
+              Chụp lại từ đầu
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5 KHUNG XEM TRƯỚC (THUMBNAIL GALLERY) -->
+      <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-5 shadow-lg">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <span>🖼️</span> 5 góc ảnh đã thu thập
+            <span id="progressCount" class="text-xs font-normal text-slate-400">(0/5 ảnh)</span>
+          </h3>
+          <span class="text-xs text-slate-400">Nhấp vào từng ảnh để chụp lại góc đó</span>
+        </div>
+
+        <div class="grid grid-cols-5 gap-2.5 md:gap-3">
+          <!-- Slot 0: Front -->
+          <div class="slot-card bg-slate-900 border-2 border-slate-700 rounded-xl p-2 text-center relative cursor-pointer group" onclick="selectSlot(0)">
+            <div class="w-full aspect-square bg-slate-800 rounded-lg overflow-hidden flex items-center justify-center relative mb-1.5">
+              <img id="thumb-0" class="w-full h-full object-cover hidden" alt="Front">
+              <span id="ph-0" class="text-2xl text-slate-600">📸</span>
+              <span id="badge-0" class="absolute top-1 right-1 w-4 h-4 rounded-full bg-slate-700 text-[10px] text-slate-400 flex items-center justify-center">1</span>
+            </div>
+            <p class="text-[11px] font-bold text-slate-300 truncate">1. Thẳng</p>
+            <p id="st-0" class="text-[9px] text-slate-500">Chưa chụp</p>
+          </div>
+
+          <!-- Slot 1: Left -->
+          <div class="slot-card bg-slate-900 border-2 border-slate-700 rounded-xl p-2 text-center relative cursor-pointer group" onclick="selectSlot(1)">
+            <div class="w-full aspect-square bg-slate-800 rounded-lg overflow-hidden flex items-center justify-center relative mb-1.5">
+              <img id="thumb-1" class="w-full h-full object-cover hidden" alt="Left">
+              <span id="ph-1" class="text-2xl text-slate-600">👈</span>
+              <span id="badge-1" class="absolute top-1 right-1 w-4 h-4 rounded-full bg-slate-700 text-[10px] text-slate-400 flex items-center justify-center">2</span>
+            </div>
+            <p class="text-[11px] font-bold text-slate-300 truncate">2. Trái</p>
+            <p id="st-1" class="text-[9px] text-slate-500">Chưa chụp</p>
+          </div>
+
+          <!-- Slot 2: Right -->
+          <div class="slot-card bg-slate-900 border-2 border-slate-700 rounded-xl p-2 text-center relative cursor-pointer group" onclick="selectSlot(2)">
+            <div class="w-full aspect-square bg-slate-800 rounded-lg overflow-hidden flex items-center justify-center relative mb-1.5">
+              <img id="thumb-2" class="w-full h-full object-cover hidden" alt="Right">
+              <span id="ph-2" class="text-2xl text-slate-600">👉</span>
+              <span id="badge-2" class="absolute top-1 right-1 w-4 h-4 rounded-full bg-slate-700 text-[10px] text-slate-400 flex items-center justify-center">3</span>
+            </div>
+            <p class="text-[11px] font-bold text-slate-300 truncate">3. Phải</p>
+            <p id="st-2" class="text-[9px] text-slate-500">Chưa chụp</p>
+          </div>
+
+          <!-- Slot 3: Up -->
+          <div class="slot-card bg-slate-900 border-2 border-slate-700 rounded-xl p-2 text-center relative cursor-pointer group" onclick="selectSlot(3)">
+            <div class="w-full aspect-square bg-slate-800 rounded-lg overflow-hidden flex items-center justify-center relative mb-1.5">
+              <img id="thumb-3" class="w-full h-full object-cover hidden" alt="Up">
+              <span id="ph-3" class="text-2xl text-slate-600">👆</span>
+              <span id="badge-3" class="absolute top-1 right-1 w-4 h-4 rounded-full bg-slate-700 text-[10px] text-slate-400 flex items-center justify-center">4</span>
+            </div>
+            <p class="text-[11px] font-bold text-slate-300 truncate">4. Ngước</p>
+            <p id="st-3" class="text-[9px] text-slate-500">Chưa chụp</p>
+          </div>
+
+          <!-- Slot 4: Under -->
+          <div class="slot-card bg-slate-900 border-2 border-slate-700 rounded-xl p-2 text-center relative cursor-pointer group" onclick="selectSlot(4)">
+            <div class="w-full aspect-square bg-slate-800 rounded-lg overflow-hidden flex items-center justify-center relative mb-1.5">
+              <img id="thumb-4" class="w-full h-full object-cover hidden" alt="Under">
+              <span id="ph-4" class="text-2xl text-slate-600">👇</span>
+              <span id="badge-4" class="absolute top-1 right-1 w-4 h-4 rounded-full bg-slate-700 text-[10px] text-slate-400 flex items-center justify-center">5</span>
+            </div>
+            <p class="text-[11px] font-bold text-slate-300 truncate">5. Cúi</p>
+            <p id="st-4" class="text-[9px] text-slate-500">Chưa chụp</p>
+          </div>
+        </div>
+
+        <!-- HÀNG NÚT SUBMIT -->
+        <div class="mt-5 flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-700/80">
+          <div class="text-xs text-slate-400">
+            <span id="submitHint">Yêu cầu tối thiểu 3 ảnh (khuyên dùng đủ 5 ảnh các góc).</span>
+          </div>
+
+          <button id="btnSubmitEnroll" disabled class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-emerald-600/20 transition text-sm flex items-center gap-2">
+            <span>💾</span> Xác nhận &amp; Nạp FaceID vào hệ thống
+          </button>
+        </div>
+      </div>
+
+      <!-- KẾT QUẢ / TRẠNG THÁI TIẾN TRÌNH (RESULT CARD) -->
+      <div id="resultCard" class="hidden bg-slate-800/95 border-2 rounded-2xl p-5 shadow-2xl transition">
+        <!-- Spinner Loading -->
+        <div id="loadingBox" class="py-6 flex flex-col items-center justify-center gap-3">
+          <div class="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <p id="loadingStatusText" class="text-sm font-semibold text-indigo-400">Đang tải ảnh và xử lý nhận diện ArcFace 512-D...</p>
+          <p class="text-xs text-slate-400">Đang kiểm tra độ sáng, độ mờ, góc nghiêng và tính Cosine Centroid...</p>
+        </div>
+
+        <!-- Success Result -->
+        <div id="successBox" class="hidden space-y-4">
+          <div class="flex items-center gap-3 text-emerald-400">
+            <div class="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-xl">✓</div>
+            <div>
+              <h3 class="text-lg font-bold text-white">Đăng ký FaceID thành công!</h3>
+              <p id="successMsg" class="text-xs text-slate-300">Vector khuôn mặt đã được nạp trực tiếp vào RAM Gallery.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div class="bg-slate-900 p-3 rounded-xl border border-slate-700">
+              <span class="text-slate-400">Mã nhân viên</span>
+              <p id="resEmpId" class="text-base font-bold text-white">-</p>
+            </div>
+            <div class="bg-slate-900 p-3 rounded-xl border border-slate-700">
+              <span class="text-slate-400">Ảnh hợp lệ</span>
+              <p id="resValidCount" class="text-base font-bold text-emerald-400">5 / 5</p>
+            </div>
+            <div class="bg-slate-900 p-3 rounded-xl border border-slate-700">
+              <span class="text-slate-400">Độ đồng nhất (Sim)</span>
+              <p id="resSim" class="text-base font-bold text-sky-400">-</p>
+            </div>
+            <div class="bg-slate-900 p-3 rounded-xl border border-slate-700">
+              <span class="text-slate-400">Trạng thái Kiosk</span>
+              <p class="text-base font-bold text-green-400">Sẵn sàng</p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <p class="text-xs text-slate-400">
+              Nhân viên có thể di chuyển ra Kiosk và chấm công vào/ra ngay mà không cần khởi động lại server.
+            </p>
+            <div class="flex items-center gap-2">
+              <a href="/kiosk.html" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg text-xs transition">
+                Mở Kiosk quét thử ngay 📸
+              </a>
+              <button onclick="resetEnrollmentForm()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold rounded-lg text-xs transition">
+                Đăng ký nhân viên khác
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error Result -->
+        <div id="errorBox" class="hidden space-y-3">
+          <div class="flex items-center gap-3 text-rose-400">
+            <div class="w-10 h-10 rounded-full bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-xl">✕</div>
+            <div>
+              <h3 class="text-lg font-bold text-white">Đăng ký FaceID chưa đạt yêu cầu</h3>
+              <p id="errorMsg" class="text-xs text-rose-300">Ảnh không đạt chuẩn chất lượng hoặc độ đồng nhất quá thấp.</p>
+            </div>
+          </div>
+
+          <div id="rejectedDetails" class="bg-slate-900 p-3 rounded-xl border border-rose-500/30 text-xs space-y-1 text-slate-300">
+            <!-- Dynamic rejected reasons -->
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button onclick="document.getElementById('resultCard').classList.add('hidden')" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold rounded-lg text-xs transition">
+              Đóng và chụp lại các góc bị lỗi
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ===== HẰNG SỐ & TRẠNG THÁI =====
+    const POSE_NAMES = ["front", "left", "right", "up", "under"];
+    const POSE_LABELS = [
+      "1. Nhìn thẳng (Front)",
+      "2. Nghiêng trái (Left)",
+      "3. Nghiêng phải (Right)",
+      "4. Ngước lên (Up)",
+      "5. Cúi nhẹ (Under)"
+    ];
+
+    let currentSlotIndex = 0;
+    let capturedBlobs = [null, null, null, null, null]; // 5 Blobs
+    let isAutoCapturing = false;
+    let soundEnabled = true;
+    let allEmployees = [];
+
+    // Audio Context (Synthesized sound effects)
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return audioCtx;
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        const now = ctx.currentTime;
+        if (type === 'beep') {
+          osc.frequency.setValueAtTime(800, now);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === 'shutter') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(1400, now);
+          osc.frequency.exponentialRampToValueAtTime(300, now + 0.12);
+          gain.gain.setValueAtTime(0.35, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } else if (type === 'success') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, now); // C5
+          osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+          osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        } else if (type === 'error') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, now);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        }
+      } catch (e) {
+        console.warn("Audio error:", e);
+      }
+    }
+
+    // ===== KHỞI TẠO CAMERA =====
+    const video = document.getElementById('video');
+    const cameraSelect = document.getElementById('cameraSelect');
+
+    async function initCamera(deviceId = null) {
+      try {
+        if (video.srcObject) {
+          video.srcObject.getTracks().forEach(t => t.stop());
+        }
+        const constraints = {
+          video: {
+            deviceId: deviceId ? { exact: deviceId } : undefined,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'user'
+          },
+          audio: false
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+
+        // Liệt kê danh sách camera nếu chưa có
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        if (cameraSelect.options.length <= 1) {
+          cameraSelect.innerHTML = '';
+          videoDevices.forEach((d, i) => {
+            const opt = document.createElement('option');
+            opt.value = d.deviceId;
+            opt.text = d.label || `Camera ${i + 1}`;
+            cameraSelect.appendChild(opt);
+          });
+        }
+        document.getElementById('camAlertText').textContent = "Camera sẵn sàng · Căn chỉnh mặt vào khung oval";
+      } catch (err) {
+        console.error("Camera error:", err);
+        document.getElementById('camAlertText').textContent = "⚠️ Không thể truy cập Camera. Vui lòng cấp quyền.";
+      }
+    }
+
+    cameraSelect.addEventListener('change', () => {
+      initCamera(cameraSelect.value);
+    });
+
+    // ===== TẢI DANH SÁCH NHÂN VIÊN =====
+    async function loadEmployees() {
+      try {
+        const resp = await fetch('/api/employees');
+        if (!resp.ok) throw new Error("Lỗi nạp danh sách nhân viên");
+        allEmployees = await resp.json();
+
+        const select = document.getElementById('empSelect');
+        select.innerHTML = '<option value="">-- Chọn nhân viên cần đăng ký --</option>';
+
+        allEmployees.forEach(emp => {
+          const opt = document.createElement('option');
+          opt.value = emp.employee_id;
+          const statusText = emp.has_face ? `(Đã có FaceID - ${emp.photo_count} ảnh)` : `(Chưa có FaceID)`;
+          opt.textContent = `[${emp.employee_id}] ${emp.full_name} · ${emp.role_vn || emp.role} ${statusText}`;
+          select.appendChild(opt);
+        });
+
+        // Tự động chọn nhân viên đầu tiên chưa có FaceID (hoặc NV0003)
+        const pendingEmp = allEmployees.find(e => !e.has_face) || allEmployees[0];
+        if (pendingEmp) {
+          select.value = pendingEmp.employee_id;
+          onEmployeeChange(pendingEmp.employee_id);
+        }
+      } catch (err) {
+        console.error("Error loading employees:", err);
+      }
+    }
+
+    function onEmployeeChange(empId) {
+      const emp = allEmployees.find(e => e.employee_id === empId);
+      if (!emp) return;
+
+      document.getElementById('empNameDisplay').textContent = emp.full_name;
+      document.getElementById('empRoleDisplay').textContent = `Mã: ${emp.employee_id} · ${emp.role_vn || emp.role} (${emp.branch_id})`;
+      document.getElementById('empAvatar').textContent = emp.employee_id.slice(-2);
+
+      const badge = document.getElementById('empStatusBadge');
+      if (emp.has_face) {
+        badge.innerHTML = `<span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">Đã có FaceID (${emp.photo_count} ảnh)</span>`;
+      } else {
+        badge.innerHTML = `<span class="text-xs px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-semibold">Chưa có FaceID</span>`;
+      }
+    }
+
+    document.getElementById('empSelect').addEventListener('change', (e) => {
+      onEmployeeChange(e.target.value);
+    });
+
+    // Chuyển đổi giữa Chọn danh sách và Nhập mã mới
+    const modeSelectBtn = document.getElementById('modeSelect');
+    const modeManualBtn = document.getElementById('modeManual');
+    const selectBox = document.getElementById('selectBox');
+    const manualBox = document.getElementById('manualBox');
+
+    modeSelectBtn.addEventListener('click', () => {
+      modeSelectBtn.className = "flex-1 py-1 px-2.5 rounded bg-indigo-600 text-white font-semibold";
+      modeManualBtn.className = "flex-1 py-1 px-2.5 rounded bg-slate-700 text-slate-300 font-semibold hover:bg-slate-600";
+      selectBox.classList.remove('hidden');
+      manualBox.classList.add('hidden');
+      onEmployeeChange(document.getElementById('empSelect').value);
+    });
+
+    modeManualBtn.addEventListener('click', () => {
+      modeManualBtn.className = "flex-1 py-1 px-2.5 rounded bg-indigo-600 text-white font-semibold";
+      modeSelectBtn.className = "flex-1 py-1 px-2.5 rounded bg-slate-700 text-slate-300 font-semibold hover:bg-slate-600";
+      manualBox.classList.remove('hidden');
+      selectBox.classList.add('hidden');
+
+      const mId = document.getElementById('manualEmpId').value || "NV_MỚI";
+      const mName = document.getElementById('manualEmpName').value || "Nhân viên mới";
+      document.getElementById('empNameDisplay').textContent = mName;
+      document.getElementById('empRoleDisplay').textContent = `Mã: ${mId} · Thêm mới`;
+      document.getElementById('empAvatar').textContent = "NV";
+      document.getElementById('empStatusBadge').innerHTML = `<span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">Mới tạo</span>`;
+    });
+
+    document.getElementById('manualEmpId').addEventListener('input', updateManualInfo);
+    document.getElementById('manualEmpName').addEventListener('input', updateManualInfo);
+
+    function updateManualInfo() {
+      const mId = document.getElementById('manualEmpId').value.trim().toUpperCase() || "NV_MỚI";
+      const mName = document.getElementById('manualEmpName').value.trim() || "Nhân viên mới";
+      document.getElementById('empNameDisplay').textContent = mName;
+      document.getElementById('empRoleDisplay').textContent = `Mã: ${mId} · Thêm mới`;
+      document.getElementById('empAvatar').textContent = mId.slice(-2);
+    }
+
+    // ===== CHỌN VÀ HIỂN THỊ GÓC CHỤP (SLOTS) =====
+    function selectSlot(index) {
+      currentSlotIndex = index;
+      document.getElementById('poseStatusBanner').innerHTML = `Tư thế đang chọn: <strong>${POSE_LABELS[index]}</strong>`;
+
+      // Cập nhật viền cho slot cards
+      for (let i = 0; i < 5; i++) {
+        const slotEl = document.querySelectorAll('.slot-card')[i];
+        const guideEl = document.getElementById(`poseGuide-${i}`);
+
+        if (i === index) {
+          slotEl.classList.add('border-indigo-400', 'ring-2', 'ring-indigo-400/40');
+          slotEl.classList.remove('border-slate-700');
+          guideEl.classList.add('border-indigo-400', 'bg-indigo-950/30');
+          guideEl.classList.remove('border-slate-700/60');
+        } else {
+          slotEl.classList.remove('border-indigo-400', 'ring-2', 'ring-indigo-400/40');
+          slotEl.classList.add('border-slate-700');
+          guideEl.classList.remove('border-indigo-400', 'bg-indigo-950/30');
+          guideEl.classList.add('border-slate-700/60');
+        }
+      }
+    }
+
+    // ===== CHỤP KHUNG HÌNH (CAPTURE SNAPSHOT) =====
+    function captureFrame(slotIdx) {
+      if (!video.videoWidth) return null;
+
+      const canvas = document.getElementById('snapshotCanvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+
+      // Do video được mirror CSS (scaleX(-1)), ta lật ngược lại trên canvas để ảnh lưu theo chiều đúng
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => {
+          if (!blob) return resolve(null);
+          capturedBlobs[slotIdx] = blob;
+
+          // Cập nhật thumbnail preview
+          const url = URL.createObjectURL(blob);
+          const thumb = document.getElementById(`thumb-${slotIdx}`);
+          const placeholder = document.getElementById(`ph-${slotIdx}`);
+          const statusText = document.getElementById(`st-${slotIdx}`);
+          const badge = document.getElementById(`badge-${slotIdx}`);
+          const stepCheck = document.querySelectorAll('.step-check')[slotIdx];
+
+          thumb.src = url;
+          thumb.classList.remove('hidden');
+          placeholder.classList.add('hidden');
+          statusText.textContent = "✓ Đã chụp";
+          statusText.className = "text-[9px] text-emerald-400 font-bold";
+          badge.className = "absolute top-1 right-1 w-4 h-4 rounded-full bg-emerald-500 text-[10px] text-slate-900 font-bold flex items-center justify-center";
+          badge.textContent = "✓";
+          stepCheck.textContent = "✓";
+          stepCheck.className = "step-check text-emerald-400 font-bold text-sm";
+
+          playSound('shutter');
+          updateSubmitStatus();
+          resolve(blob);
+        }, 'image/jpeg', 0.92);
+      });
+    }
+
+    function updateSubmitStatus() {
+      const validCount = capturedBlobs.filter(Boolean).length;
+      document.getElementById('progressCount').textContent = `(${validCount}/5 ảnh)`;
+
+      const submitBtn = document.getElementById('btnSubmitEnroll');
+      const submitHint = document.getElementById('submitHint');
+
+      if (validCount >= 3) {
+        submitBtn.removeAttribute('disabled');
+        submitHint.innerHTML = `<span class="text-emerald-400 font-semibold">Đã có ${validCount}/5 ảnh hợp lệ. Sẵn sàng nạp FaceID!</span>`;
+      } else {
+        submitBtn.setAttribute('disabled', 'true');
+        submitHint.textContent = `Yêu cầu tối thiểu 3 ảnh (cần thêm ${3 - validCount} ảnh nữa).`;
+      }
+    }
+
+    // Manual Capture Button
+    document.getElementById('btnManualSnap').addEventListener('click', async () => {
+      await captureFrame(currentSlotIndex);
+      // Tự động nhảy sang slot tiếp theo nếu chưa chụp
+      if (currentSlotIndex < 4) {
+        selectSlot(currentSlotIndex + 1);
+      }
+    });
+
+    // ===== TỰ ĐỘNG QUÉT 5 GÓC (AUTO WIZARD) =====
+    async function runAutoWizard() {
+      if (isAutoCapturing) return;
+      isAutoCapturing = true;
+
+      const autoBtn = document.getElementById('btnAutoWizard');
+      const origText = autoBtn.innerHTML;
+      autoBtn.innerHTML = `<span>⏳</span> Đang tự động quét...`;
+      autoBtn.classList.add('opacity-80');
+
+      const countdownBox = document.getElementById('countdownBox');
+      const countdownNum = document.getElementById('countdownNumber');
+      const camAlertText = document.getElementById('camAlertText');
+
+      for (let slot = 0; slot < 5; slot++) {
+        selectSlot(slot);
+        camAlertText.textContent = `Chuẩn bị tư thế: ${POSE_LABELS[slot]}`;
+
+        // Đếm ngược 3.. 2.. 1..
+        countdownBox.classList.remove('hidden');
+        for (let sec = 3; sec > 0; sec--) {
+          countdownNum.textContent = sec;
+          playSound('beep');
+          await new Promise(r => setTimeout(r, 800));
+        }
+
+        countdownBox.classList.add('hidden');
+        await captureFrame(slot);
+        await new Promise(r => setTimeout(r, 600));
+      }
+
+      camAlertText.textContent = "🎉 Đã hoàn thành chụp đủ 5 góc ảnh!";
+      playSound('success');
+      autoBtn.innerHTML = origText;
+      autoBtn.classList.remove('opacity-80');
+      isAutoCapturing = false;
+    }
+
+    document.getElementById('btnAutoWizard').addEventListener('click', runAutoWizard);
+
+    // ===== TẢI ẢNH TỪ MÁY (FILE UPLOADER FALLBACK) =====
+    const fileUploader = document.getElementById('fileUploader');
+    fileUploader.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      if (!files.length) return;
+
+      files.slice(0, 5).forEach((file, idx) => {
+        capturedBlobs[idx] = file;
+        const url = URL.createObjectURL(file);
+        const thumb = document.getElementById(`thumb-${idx}`);
+        const placeholder = document.getElementById(`ph-${idx}`);
+        const statusText = document.getElementById(`st-${idx}`);
+        const badge = document.getElementById(`badge-${idx}`);
+        const stepCheck = document.querySelectorAll('.step-check')[idx];
+
+        thumb.src = url;
+        thumb.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+        statusText.textContent = "✓ Tệp tải lên";
+        statusText.className = "text-[9px] text-sky-400 font-bold";
+        badge.className = "absolute top-1 right-1 w-4 h-4 rounded-full bg-sky-500 text-[10px] text-slate-900 font-bold flex items-center justify-center";
+        badge.textContent = "✓";
+        stepCheck.textContent = "✓";
+        stepCheck.className = "step-check text-sky-400 font-bold text-sm";
+      });
+
+      updateSubmitStatus();
+      playSound('success');
+    });
+
+    // Reset All Photos
+    document.getElementById('btnResetPhotos').addEventListener('click', () => {
+      resetPhotosOnly();
+    });
+
+    function resetPhotosOnly() {
+      capturedBlobs = [null, null, null, null, null];
+      for (let i = 0; i < 5; i++) {
+        const thumb = document.getElementById(`thumb-${i}`);
+        const placeholder = document.getElementById(`ph-${i}`);
+        const statusText = document.getElementById(`st-${i}`);
+        const badge = document.getElementById(`badge-${i}`);
+        const stepCheck = document.querySelectorAll('.step-check')[i];
+
+        thumb.src = '';
+        thumb.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+        statusText.textContent = "Chưa chụp";
+        statusText.className = "text-[9px] text-slate-500";
+        badge.className = "absolute top-1 right-1 w-4 h-4 rounded-full bg-slate-700 text-[10px] text-slate-400 flex items-center justify-center";
+        badge.textContent = i + 1;
+        stepCheck.textContent = "○";
+        stepCheck.className = "step-check text-slate-600 text-sm";
+      }
+      updateSubmitStatus();
+      selectSlot(0);
+    }
+
+    // Toggle Sound
+    document.getElementById('btnSound').addEventListener('click', (e) => {
+      soundEnabled = !soundEnabled;
+      e.target.textContent = soundEnabled ? '🔊 Âm thanh: Bật' : '🔇 Âm thanh: Tắt';
+    });
+
+    // ===== GỬI ĐĂNG KÝ FACEID LÊN SERVER (SUBMIT ENROLLMENT) =====
+    const btnSubmit = document.getElementById('btnSubmitEnroll');
+    const resultCard = document.getElementById('resultCard');
+    const loadingBox = document.getElementById('loadingBox');
+    const successBox = document.getElementById('successBox');
+    const errorBox = document.getElementById('errorBox');
+
+    btnSubmit.addEventListener('click', async () => {
+      const isManual = !manualBox.classList.contains('hidden');
+      let empId = isManual ? document.getElementById('manualEmpId').value.trim() : document.getElementById('empSelect').value;
+      let empName = isManual ? document.getElementById('manualEmpName').value.trim() : document.getElementById('empNameDisplay').textContent;
+
+      if (!empId) {
+        alert("Vui lòng chọn hoặc nhập mã nhân viên!");
+        return;
+      }
+
+      const chkConsent = document.getElementById('chkConsent').checked;
+      if (!chkConsent) {
+        alert("Vui lòng xác nhận sự đồng ý thu thập dữ liệu sinh trắc học theo quy định!");
+        return;
+      }
+
+      // Chuẩn bị FormData
+      const formData = new FormData();
+      formData.append('full_name', empName);
+      formData.append('consent', 'true');
+
+      let attachedCount = 0;
+      for (let i = 0; i < 5; i++) {
+        if (capturedBlobs[i]) {
+          const pose = POSE_NAMES[i];
+          formData.append('files', capturedBlobs[i], `${pose}.jpg`);
+          attachedCount++;
+        }
+      }
+
+      if (attachedCount < 3) {
+        alert("Cần tối thiểu 3 ảnh để đăng ký!");
+        return;
+      }
+
+      // Hiển thị Result Card ở trạng thái Loading
+      resultCard.classList.remove('hidden');
+      resultCard.className = "bg-slate-800/95 border-2 border-indigo-500/50 rounded-2xl p-5 shadow-2xl transition";
+      loadingBox.classList.remove('hidden');
+      successBox.classList.add('hidden');
+      errorBox.classList.add('hidden');
+      btnSubmit.setAttribute('disabled', 'true');
+
+      resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      try {
+        const resp = await fetch(`/api/employees/${encodeURIComponent(empId)}/face/enroll`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await resp.json();
+        loadingBox.classList.add('hidden');
+
+        if (resp.ok && data.ok) {
+          // THÀNH CÔNG
+          resultCard.className = "bg-slate-800/95 border-2 border-emerald-500 rounded-2xl p-5 shadow-2xl transition";
+          successBox.classList.remove('hidden');
+
+          document.getElementById('resEmpId').textContent = data.employee_id;
+          document.getElementById('resValidCount').textContent = `${data.num_valid} / ${attachedCount}`;
+          document.getElementById('resSim').textContent = data.mean_intra_similarity.toFixed(3);
+          document.getElementById('successMsg').textContent = data.message || "Vector khuôn mặt đã được nạp thành công vào hệ thống!";
+
+          playSound('success');
+          // Reload lại danh sách nhân viên để cập nhật trạng thái
+          loadEmployees();
+        } else {
+          // THẤT BẠI HOẶC ẢNH KÉM CHẤT LƯỢNG
+          resultCard.className = "bg-slate-800/95 border-2 border-rose-500 rounded-2xl p-5 shadow-2xl transition";
+          errorBox.classList.remove('hidden');
+          document.getElementById('errorMsg').textContent = data.message || data.detail || "Đăng ký khuôn mặt thất bại.";
+
+          const detailsBox = document.getElementById('rejectedDetails');
+          detailsBox.innerHTML = '';
+
+          if (data.rejected_files && Object.keys(data.rejected_files).length > 0) {
+            let html = '<p class="font-bold text-rose-300 mb-1">Chi tiết các ảnh chưa đạt:</p>';
+            for (const [file, reasons] of Object.entries(data.rejected_files)) {
+              html += `<p>• <strong class="text-white">${file}:</strong> ${reasons.join(', ')}</p>`;
+            }
+            detailsBox.innerHTML = html;
+          } else {
+            detailsBox.innerHTML = '<p>Không đủ số lượng ảnh đạt tiêu chuẩn (độ sáng, độ nét, đúng 1 khuôn mặt).</p>';
+          }
+          playSound('error');
+        }
+      } catch (err) {
+        console.error("Submission error:", err);
+        loadingBox.classList.add('hidden');
+        resultCard.className = "bg-slate-800/95 border-2 border-rose-500 rounded-2xl p-5 shadow-2xl transition";
+        errorBox.classList.remove('hidden');
+        document.getElementById('errorMsg').textContent = "Không thể kết nối đến máy chủ API: " + err.message;
+        playSound('error');
+      } finally {
+        updateSubmitStatus();
+      }
+    });
+
+    function resetEnrollmentForm() {
+      resetPhotosOnly();
+      resultCard.classList.add('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Phím tắt Spacebar để chụp nhanh
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+        e.preventDefault();
+        document.getElementById('btnManualSnap').click();
+      }
+    });
+
+    // ===== KHỞI ĐỘNG KHI TẢI TRANG =====
+    window.addEventListener('DOMContentLoaded', () => {
+      selectSlot(0);
+      initCamera();
+      loadEmployees();
+    });
+  </script>
+</body>
+</html>
