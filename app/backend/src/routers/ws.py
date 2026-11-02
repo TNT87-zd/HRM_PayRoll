@@ -1,12 +1,36 @@
-from fastapi import APIRouter, UploadFile, Depends
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 from database import get_db
 from schemas import EnrollResponse
 
 router = APIRouter()
 
-@router.post("/{emp_id}/face/enroll", response_model=EnrollResponse)
-def enroll(emp_id: str, files: list[UploadFile], db: Session = Depends(get_db)):
-    # MOCK: sau này thay bằng face_service.enroll(...)
-    return EnrollResponse(ok=True, employee_id=emp_id.upper(), num_valid=len(files),
-                          mean_intra_similarity=0.79, message="mock")
+class ConnectionManager:
+    def __init__(self):
+        self.active: list[WebSocket] = []
+
+    async def connect(self, ws: WebSocket):
+        await ws.accept()
+        self.active.append(ws)
+
+    def disconnect(self, ws: WebSocket):
+        if ws in self.active:
+            self.active.remove(ws)
+
+    async def broadcast(self, data: dict):
+        for ws in list(self.active):
+            try:
+                await ws.send_json(data)
+            except Exception:
+                self.disconnect(ws)
+
+manager = ConnectionManager()
+
+@router.websocket("/ws/events")
+async def events(ws: WebSocket):
+    await manager.connect(ws)
+    try:
+        while True:
+            await ws.receive_text()    # giữ kết nối
+    except WebSocketDisconnect:
+        manager.disconnect(ws)

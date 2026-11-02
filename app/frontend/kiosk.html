@@ -30,6 +30,7 @@
   </div>
 
   <div class="grid lg:grid-cols-3 gap-4">
+    <!-- Camera Section -->
     <div class="lg:col-span-2 bg-slate-800 rounded-xl p-3">
       <div class="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
         <video id="cam" autoplay muted playsinline class="absolute inset-0 w-full h-full object-contain"></video>
@@ -38,11 +39,21 @@
       </div>
     </div>
 
+    <!-- Panel Section -->
     <div class="flex flex-col gap-4">
+      
+      <!-- NÚT CHỌN CHẾ ĐỘ VÀO / RA -->
+      <div class="flex gap-3">
+        <button id="btn-in" onclick="setMode('IN')" class="flex-1 bg-green-500 text-slate-900 text-lg font-bold py-3 rounded-xl border-b-4 border-green-700 transition-all">👋 VÀO (IN)</button>
+        <button id="btn-out" onclick="setMode('OUT')" class="flex-1 bg-slate-800 text-slate-400 text-lg font-bold py-3 rounded-xl border-b-4 border-slate-900 transition-all hover:bg-slate-700">🏃 RA (OUT)</button>
+      </div>
+
+      <!-- Thẻ thông báo kết quả -->
       <div id="card" class="bg-slate-800 rounded-xl p-5 border-4 border-slate-600">
         <p id="title" class="text-3xl font-bold">Đang chờ quét…</p>
         <p id="sub" class="text-slate-300 mt-1">Nhìn thẳng vào camera</p>
         <p id="time" class="text-slate-400 mt-1"></p>
+        
         <p class="text-sm text-slate-400 mt-4 mb-1">Độ giống khuôn mặt <span id="simTxt" class="font-bold text-slate-100"></span></p>
         <div class="relative h-4 bg-slate-700 rounded-full overflow-hidden">
           <div id="simBar" class="h-full rounded-full" style="width:0%"></div>
@@ -51,6 +62,7 @@
         <p class="text-xs text-slate-500 mt-1">Vạch trắng = ngưỡng chấp nhận 55%</p>
       </div>
 
+      <!-- Lịch sử quét -->
       <div class="bg-slate-800 rounded-xl p-5">
         <div class="flex justify-between items-center mb-2">
           <h2 class="font-bold">5 lượt quét gần nhất</h2>
@@ -64,24 +76,15 @@
 <script>
 // ===== Cấu hình =====
 const API = '/api/kiosk/recognize';
-const DEVICE_ID = 'CN01-TB01';          // mã thiết bị thật trong attendance_events.csv
-const LAT = 16.0471, LON = 108.2208;    // toạ độ chi nhánh Hải Châu (CN01)
-const SCAN_MS = 1500;                   // chu kỳ gửi khung hình
-const COOLDOWN_MS = 5000;               // nghỉ sau khi chấm công thành công
+const DEVICE_ID = 'CN01-TB01';
+const LAT = 16.0471, LON = 108.2208;
+const SCAN_MS = 1500;
+const COOLDOWN_MS = 5000;
 const REASONS = {
-  accepted: 'Hợp lệ',
   below_threshold: 'Không khớp nhân viên nào (người lạ)',
   ambiguous_margin: 'Khó phân biệt, hãy thử lại',
   empty_gallery: 'Chưa có dữ liệu khuôn mặt',
-  outside_geofence: 'Ngoài phạm vi chi nhánh',
-  engine_unavailable: 'Máy chủ chưa tải xong mô hình nhận diện',
-  spoof: 'Nghi giả mạo (ảnh/video)',
-  low_similarity: 'Không khớp nhân viên nào',
-};
-const HINTS = {   // trạng thái cần người dùng chỉnh lại, không ghi vào lịch sử
-  low_quality: 'Ảnh chưa đạt: nhìn thẳng, đủ sáng',
-  multiple_faces: 'Chỉ một người đứng trước camera',
-  duplicate: 'Đã chấm công gần đây',
+  spoof: 'Nghi giả mạo (ảnh/video)'
 };
 const DEMO = new URLSearchParams(location.search).has('demo');
 
@@ -89,6 +92,7 @@ const DEMO = new URLSearchParams(location.search).has('demo');
 const $ = id => document.getElementById(id);
 const video = $('cam'), cv = $('overlay'), ctx = cv.getContext('2d');
 let fw = 640, fh = 360, busy = false, pauseUntil = 0, resetTimer = null, sound = false;
+let scanMode = 'IN'; // Mặc định là chấm VÀO
 
 // ===== Đồng hồ =====
 function tick() {
@@ -99,16 +103,27 @@ function tick() {
 setInterval(tick, 1000); tick();
 $('device').textContent = 'Thiết bị ' + DEVICE_ID;
 
+// ===== Chuyển đổi trạng thái IN / OUT =====
+function setMode(mode) {
+  scanMode = mode;
+  const isIN = mode === 'IN';
+  $('btn-in').className = isIN
+    ? 'flex-1 bg-green-500 text-slate-900 text-lg font-bold py-3 rounded-xl border-b-4 border-green-700 transition-all'
+    : 'flex-1 bg-slate-800 text-slate-400 text-lg font-bold py-3 rounded-xl border-b-4 border-slate-900 transition-all hover:bg-slate-700';
+
+  $('btn-out').className = !isIN
+    ? 'flex-1 bg-orange-500 text-slate-900 text-lg font-bold py-3 rounded-xl border-b-4 border-orange-700 transition-all'
+    : 'flex-1 bg-slate-800 text-slate-400 text-lg font-bold py-3 rounded-xl border-b-4 border-slate-900 transition-all hover:bg-slate-700';
+  
+  setIdle();
+}
+
 // ===== Âm thanh =====
 function speak(t) {
   if (!sound) return;
   try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'vi-VN'; speechSynthesis.speak(u); } catch (e) {}
 }
-$('btnSound').onclick = () => {
-  sound = !sound;
-  $('btnSound').textContent = 'Âm thanh: ' + (sound ? 'Bật' : 'Tắt');
-  if (sound) speak('Đã bật âm thanh');
-};
+$('btnSound').onclick = () => { sound = !sound; $('btnSound').textContent = 'Âm thanh: ' + (sound ? 'Bật' : 'Tắt'); };
 
 // ===== Camera =====
 navigator.mediaDevices.getUserMedia({video: {width: 1280, height: 720}, audio: false})
@@ -124,7 +139,7 @@ function grab() {
   return new Promise(r => c.toBlob(r, 'image/jpeg', 0.8));
 }
 
-// ===== Vẽ khung mặt (bbox = [x1, y1, x2, y2] theo pixel của ảnh gửi đi) =====
+// ===== Vẽ khung mặt =====
 function clearBox() { ctx.clearRect(0, 0, cv.width, cv.height); }
 function drawBox(b, color, label) {
   const cw = cv.clientWidth, ch = cv.clientHeight;
@@ -146,8 +161,9 @@ function setMsg(title, sub, color) {
   $('sub').textContent = sub;
 }
 function setIdle() {
-  setMsg('Đang chờ quét…', 'Nhìn thẳng vào camera', '#475569');
-  $('title').style.color = '';
+  const txt = scanMode === 'IN' ? 'VÀO' : 'RA';
+  const col = scanMode === 'IN' ? '#22c55e' : '#f97316';
+  setMsg(`Đang chờ quét ${txt}…`, 'Nhìn thẳng vào camera', col);
   $('time').textContent = ''; $('simTxt').textContent = ''; $('simBar').style.width = '0%';
 }
 function addHistory(label, time, color, ok) {
@@ -159,33 +175,28 @@ function addHistory(label, time, color, ok) {
   while ($('history').children.length > 5) $('history').lastChild.remove();
 }
 
-// ===== Xử lý kết quả từ API =====
+// ===== Xử lý kết quả =====
 function handle(r) {
   if (r.reason === 'no_face') { clearBox(); setIdle(); return; }
-  if (HINTS[r.reason]) {
-    const c = '#eab308', sm = r.similarity ?? 0;
-    drawBox(r.bbox, c, r.full_name ? `${r.full_name} · ${(sm * 100).toFixed(1)}%` : 'Chưa đạt');
-    setMsg(r.full_name || 'Chưa nhận diện được', HINTS[r.reason], c);
-    if (sm) { $('simTxt').textContent = (sm * 100).toFixed(1) + '%'; $('simBar').style.width = Math.min(sm * 100, 100) + '%'; $('simBar').style.background = c; }
-    pauseUntil = Date.now() + 1000;
-    clearTimeout(resetTimer);
-    resetTimer = setTimeout(() => { clearBox(); setIdle(); }, 2500);
-    return;
-  }
+  
   const ok = r.matched;
-  const color = ok ? '#22c55e' : '#ef4444';
+  const color = ok ? (scanMode === 'IN' ? '#22c55e' : '#f97316') : '#ef4444';
   const sim = r.similarity ?? 0;
   const time = new Date(r.timestamp).toLocaleTimeString('vi-VN');
+  
+  // Backend sẽ gửi kết quả phân tích Ca làm việc (đúng giờ/đi trễ) vào biến r.reason
   const why = REASONS[r.reason] || r.reason || 'Từ chối';
 
   drawBox(r.bbox, color, ok ? `${r.full_name} · ${(sim * 100).toFixed(1)}%` : 'Không hợp lệ');
-  setMsg(ok ? r.full_name : 'Không chấm công được', ok ? `Mã NV: ${r.employee_id}` : why, color);
+  setMsg(ok ? r.full_name : 'Không chấm công được', ok ? why : why, color);
+  
   $('time').textContent = time;
   $('simTxt').textContent = (sim * 100).toFixed(1) + '%';
   $('simBar').style.width = Math.min(sim * 100, 100) + '%';
   $('simBar').style.background = color;
   addHistory(ok ? r.full_name : why, time, color, ok);
-  if (ok) speak('Xin chào ' + r.full_name);
+  
+  if (ok) speak(why);
 
   const wait = ok ? COOLDOWN_MS : 2500;
   pauseUntil = Date.now() + wait;
@@ -193,7 +204,7 @@ function handle(r) {
   resetTimer = setTimeout(() => { clearBox(); setIdle(); }, wait);
 }
 
-// ===== Vòng lặp quét =====
+// ===== Gửi hình lên Backend =====
 async function scan() {
   if (busy || Date.now() < pauseUntil) return;
   busy = true;
@@ -203,26 +214,19 @@ async function scan() {
     const fd = new FormData();
     fd.append('file', blob, 'frame.jpg');
     fd.append('device_id', DEVICE_ID);
+    fd.append('scan_type', scanMode);  // GỬI KÈM TRẠNG THÁI IN/OUT
     fd.append('lat', LAT); fd.append('lon', LON);
+    
     const res = await fetch(API, {method: 'POST', body: fd});
     if (!res.ok) throw new Error(res.status);
     handle(await res.json());
   } catch (e) {
-    setMsg('Mất kết nối máy chủ', 'Đang thử lại…', '#eab308');
+    setMsg('Mất kết nối', 'Đang thử lại…', '#eab308');
   } finally { busy = false; }
 }
-setInterval(scan, SCAN_MS);
 
-// ===== Chế độ demo giao diện: mở /kiosk.html?demo=1, bấm phím 1 / 2 / 3 =====
-if (DEMO) {
-  document.title += ' [DEMO UI]';
-  const fake = {
-    '1': {matched: true,  employee_id: 'NV0002', full_name: 'Nhân viên mẫu', similarity: 0.93, reason: 'accepted', bbox: [200, 60, 440, 300]},
-    '2': {matched: false, employee_id: null, full_name: null, similarity: 0.31, reason: 'spoof', bbox: [200, 60, 440, 300]},
-    '3': {matched: false, employee_id: null, full_name: null, similarity: 0.21, reason: 'low_similarity', bbox: [200, 60, 440, 300]},
-  };
-  addEventListener('keydown', e => { const f = fake[e.key]; if (f) handle({...f, timestamp: new Date().toISOString()}); });
-}
+setInterval(scan, SCAN_MS);
+setMode('IN'); // Khởi tạo UI
 </script>
 </body>
 </html>

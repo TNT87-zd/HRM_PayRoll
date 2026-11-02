@@ -216,6 +216,37 @@ function showTab(name) {
 }
 document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
 showTab(location.hash === '#attendance' ? 'attendance' : 'overview');
+
+/* ---------- Tích hợp WebSocket Realtime ---------- */
+function connectWebSocket() {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${protocol}//localhost:8000/ws/events`);
+
+  ws.onopen = () => console.log('Đã kết nối Realtime Dashboard');
+  
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.event === 'attendance') {
+        console.log('Có người vừa chấm công:', data);
+        // Tự động tải lại dữ liệu của tab đang mở
+        if (loaded['attendance'] && !document.getElementById('tab-attendance').classList.contains('hidden')) {
+          applyFilters();
+        } else if (loaded['overview'] && !document.getElementById('tab-overview').classList.contains('hidden')) {
+          loadOverview();
+        }
+      }
+    } catch (e) {
+      console.error('Lỗi parse dữ liệu WebSocket:', e);
+    }
+  };
+
+  ws.onclose = () => {
+    console.log('Mất kết nối Realtime. Thử lại sau 3s...');
+    setTimeout(connectWebSocket, 3000);
+  };
+}
+connectWebSocket();
 </script>
 </body>
 </html>
