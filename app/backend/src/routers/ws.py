@@ -1,7 +1,4 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from sqlalchemy.orm import Session
-from database import get_db
-from schemas import EnrollResponse
 
 router = APIRouter()
 

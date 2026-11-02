@@ -59,7 +59,7 @@
           <div id="simBar" class="h-full rounded-full" style="width:0%"></div>
           <div class="absolute top-0 bottom-0 w-0.5 bg-white" style="left:55%"></div>
         </div>
-        <p class="text-xs text-slate-500 mt-1">Vạch trắng = ngưỡng chấp nhận 55%</p>
+        <p class="text-xs text-slate-500 mt-1">Điểm tương đồng để đối chiếu, không phải xác suất nhận diện đúng.</p>
       </div>
 
       <!-- Lịch sử quét -->
@@ -84,7 +84,12 @@ const REASONS = {
   below_threshold: 'Không khớp nhân viên nào (người lạ)',
   ambiguous_margin: 'Khó phân biệt, hãy thử lại',
   empty_gallery: 'Chưa có dữ liệu khuôn mặt',
-  spoof: 'Nghi giả mạo (ảnh/video)'
+  spoof: 'Nghi giả mạo (ảnh/video)',
+  unstable_identity: 'Kết quả chưa ổn định, hãy giữ yên và thử lại',
+  low_quality: 'Ảnh chưa đủ chất lượng, hãy giữ yên và cải thiện ánh sáng',
+  engine_unavailable: 'Bộ nhận diện chưa sẵn sàng',
+  outside_geofence: 'Thiết bị nằm ngoài vùng chấm công',
+  duplicate: 'Đã ghi nhận trước đó, không ghi chấm công trùng'
 };
 const DEMO = new URLSearchParams(location.search).has('demo');
 
@@ -187,11 +192,11 @@ function handle(r) {
   // Backend sẽ gửi kết quả phân tích Ca làm việc (đúng giờ/đi trễ) vào biến r.reason
   const why = REASONS[r.reason] || r.reason || 'Từ chối';
 
-  drawBox(r.bbox, color, ok ? `${r.full_name} · ${(sim * 100).toFixed(1)}%` : 'Không hợp lệ');
-  setMsg(ok ? r.full_name : 'Không chấm công được', ok ? why : why, color);
+  drawBox(r.bbox, color, ok ? `${r.full_name} · ${sim.toFixed(3)}` : 'Không hợp lệ');
+  setMsg(ok ? r.full_name : 'Không chấm công được', r.recorded ? `Đã ghi nhận ${scanMode === 'IN' ? 'VÀO' : 'RA'}` : why, color);
   
   $('time').textContent = time;
-  $('simTxt').textContent = (sim * 100).toFixed(1) + '%';
+  $('simTxt').textContent = sim.toFixed(3);
   $('simBar').style.width = Math.min(sim * 100, 100) + '%';
   $('simBar').style.background = color;
   addHistory(ok ? r.full_name : why, time, color, ok);
@@ -209,10 +214,13 @@ async function scan() {
   if (busy || Date.now() < pauseUntil) return;
   busy = true;
   try {
-    const blob = await grab();
-    if (!blob) return;
     const fd = new FormData();
-    fd.append('file', blob, 'frame.jpg');
+    for (let i = 0; i < 3; i++) {
+      const blob = await grab();
+      if (!blob) return;
+      fd.append('files', blob, `frame_${i}.jpg`);
+      if (i < 2) await new Promise(resolve => setTimeout(resolve, 180));
+    }
     fd.append('device_id', DEVICE_ID);
     fd.append('scan_type', scanMode);  // GỬI KÈM TRẠNG THÁI IN/OUT
     fd.append('lat', LAT); fd.append('lon', LON);
@@ -226,6 +234,10 @@ async function scan() {
 }
 
 setInterval(scan, SCAN_MS);
+fetch('/api/health').then(response => response.json()).then(health => {
+  const marker = document.querySelector('#simBar + div');
+  if (marker) marker.style.left = `${health.threshold * 100}%`;
+}).catch(() => {});
 setMode('IN'); // Khởi tạo UI
 </script>
 </body>

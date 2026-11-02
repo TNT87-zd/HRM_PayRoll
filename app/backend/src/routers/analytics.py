@@ -1,11 +1,16 @@
 import io
 import os
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any, Dict
 
 import pandas as pd
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
+from sqlalchemy import select
+from models import AttendanceRecord, Employee
+
+repository_factory = ContextVar("analytics_repository_factory", default=None)
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
@@ -85,15 +90,28 @@ def _load_events() -> pd.DataFrame:
     p = DATA / "attendance_events.csv"
     mtime = _get_mtime(p)
     if "events" in _CACHE and _CACHE["events"]["mtime"] == mtime:
-        return _CACHE["events"]["data"].copy()
-    if not p.is_file():
-        return pd.DataFrame()
-    df = pd.read_csv(p, parse_dates=["ts"])
-    _CACHE["events"] = {"mtime": mtime, "data": df}
+        df = _CACHE["events"]["data"].copy()
+    else:
+        df = pd.read_csv(p, parse_dates=["ts"]) if p.is_file() else pd.DataFrame()
+        _CACHE["events"] = {"mtime": mtime, "data": df.copy()}
+    factory = repository_factory.get()
+    if factory is not None:
+        with factory() as db:
+            records = db.scalars(select(AttendanceRecord)).all()
+            if records:
+                live = pd.DataFrame([{"employee_id": r.employee_id, "ts": r.timestamp,
+                                      "device_id": r.device_id, "similarity": r.similarity,
+                                      "scan_type": r.scan_type} for r in records])
+                live["ts"] = pd.to_datetime(live["ts"], unit="s", utc=True).dt.tz_convert("Asia/Ho_Chi_Minh").dt.tz_localize(None)
+                df = pd.concat([df, live], ignore_index=True)
     return df.copy()
 
 
 def _names() -> Dict[str, str]:
+    factory = repository_factory.get()
+    if factory is not None:
+        with factory() as db:
+            return {employee.employee_id: employee.full_name for employee in db.scalars(select(Employee)).all()}
     p = DATA / "employees.csv"
     mtime = _get_mtime(p)
     if "names" in _CACHE and _CACHE["names"]["mtime"] == mtime:
@@ -193,7 +211,7 @@ def summary():
     if d.empty:
         return {
             "date": "",
-            "total_employees": 0,
+            "total_employees": len(_names()),
             "present": 0,
             "late": 0,
             "absent": 0,
