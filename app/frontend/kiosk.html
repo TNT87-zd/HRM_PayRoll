@@ -15,7 +15,13 @@
   <div class="flex justify-between items-center mb-4">
     <div>
       <h1 class="text-2xl font-bold">Cafe 5TN · Chấm công khuôn mặt</h1>
-      <p id="device" class="text-slate-400"></p>
+      <div class="flex items-center gap-2 mt-0.5">
+        <span id="device" class="text-slate-400"></span>
+        <span class="text-slate-600">·</span>
+        <a href="/enroll.html" class="text-xs text-indigo-400 hover:underline">Đăng ký FaceID</a>
+        <span class="text-slate-600">·</span>
+        <a href="/admin.html" class="text-xs text-slate-400 hover:underline">Admin</a>
+      </div>
     </div>
     <div class="text-right">
       <p id="clock" class="text-4xl font-bold tabular-nums">--:--:--</p>
@@ -26,14 +32,15 @@
   <!-- Nút chọn chế độ Check-in / Check-out -->
   <div class="flex gap-4 mb-4">
     <button id="btnIn" onclick="setMode('IN')" class="flex-1 py-3 text-lg font-bold rounded-xl transition bg-green-600 text-white ring-4 ring-green-400">
-      Chấm công VÀO (Check-in)
+      👋 Chấm công VÀO (Check-in)
     </button>
     <button id="btnOut" onclick="setMode('OUT')" class="flex-1 py-3 text-lg font-bold rounded-xl transition bg-slate-700 text-slate-300 hover:bg-slate-600">
-      Chấm công RA (Check-out)
+      🏃 Chấm công RA (Check-out)
     </button>
   </div>
 
   <div class="grid lg:grid-cols-3 gap-4">
+    <!-- Camera Section -->
     <div class="lg:col-span-2 bg-slate-800 rounded-xl p-3">
       <div class="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
         <video id="cam" autoplay muted playsinline class="absolute inset-0 w-full h-full object-contain"></video>
@@ -42,19 +49,23 @@
       </div>
     </div>
 
+    <!-- Panel Section -->
     <div class="flex flex-col gap-4">
+      <!-- Thẻ thông báo kết quả -->
       <div id="card" class="bg-slate-800 rounded-xl p-5 border-4 border-slate-600">
         <p id="title" class="text-3xl font-bold">Đang chờ quét VÀO…</p>
         <p id="sub" class="text-slate-300 mt-1">Nhìn thẳng vào camera</p>
         <p id="time" class="text-slate-400 mt-1"></p>
+        
         <p class="text-sm text-slate-400 mt-4 mb-1">Độ giống khuôn mặt <span id="simTxt" class="font-bold text-slate-100"></span></p>
         <div class="relative h-4 bg-slate-700 rounded-full overflow-hidden">
           <div id="simBar" class="h-full rounded-full" style="width:0%"></div>
           <div class="absolute top-0 bottom-0 w-0.5 bg-white" style="left:55%"></div>
         </div>
-        <p class="text-xs text-slate-500 mt-1">Vạch trắng = ngưỡng chấp nhận 55%</p>
+        <p class="text-xs text-slate-500 mt-1">Điểm tương đồng để đối chiếu, không phải xác suất nhận diện đúng.</p>
       </div>
 
+      <!-- Lịch sử quét -->
       <div class="bg-slate-800 rounded-xl p-5">
         <div class="flex justify-between items-center mb-2">
           <h2 class="font-bold">5 lượt quét gần nhất</h2>
@@ -70,9 +81,9 @@
 const API = '/api/kiosk/recognize';
 const DEVICE_ID = 'CN01-TB01';
 const LAT = 16.0471, LON = 108.2208;
-const SCAN_MS = 500;          // quét dày để backend gom đủ 3 khung hình (voting)
-const COOLDOWN_MS = 5000;     // nghỉ sau khi chấm công thành công
-let scanMode = 'IN';          // Mặc định là Check-in
+const SCAN_MS = 1000;
+const COOLDOWN_MS = 5000;
+let scanMode = 'IN';
 
 const $ = id => document.getElementById(id);
 const video = $('cam'), cv = $('overlay'), ctx = cv.getContext('2d');
@@ -83,30 +94,33 @@ const REASONS = {
   accepted: 'Hợp lệ',
   verifying: 'Đang xác thực, giữ nguyên khuôn mặt…',
   duplicate: 'Bạn vừa chấm công rồi',
-  below_threshold: 'Không khớp nhân viên nào',
+  below_threshold: 'Không khớp nhân viên nào (người lạ)',
   low_similarity: 'Không khớp nhân viên nào',
   ambiguous_margin: 'Khó phân biệt, hãy thử lại',
   empty_gallery: 'Chưa có dữ liệu khuôn mặt',
-  outside_geofence: 'Ngoài vị trí cửa hàng',
-  low_quality: 'Ảnh chưa rõ, hãy nhìn thẳng vào camera',
+  outside_geofence: 'Thiết bị nằm ngoài vùng chấm công',
+  low_quality: 'Ảnh chưa đủ chất lượng, hãy nhìn thẳng vào camera',
   multiple_faces: 'Chỉ một người trong khung hình',
+  unstable_identity: 'Kết quả chưa ổn định, hãy giữ yên và thử lại',
   engine_unavailable: 'Hệ thống nhận diện chưa sẵn sàng',
-  spoof: 'Nghi giả mạo'
+  spoof: 'Nghi giả mạo (ảnh/video)'
 };
 
-// Các trạng thái chỉ hiển thị tạm, không ghi vào "5 lượt quét gần nhất"
 const NO_HISTORY = new Set(['verifying', 'duplicate', 'low_quality', 'multiple_faces',
-                            'engine_unavailable', 'empty_gallery']);
+                            'engine_unavailable', 'empty_gallery', 'no_face']);
 
 function setMode(mode) {
   scanMode = mode;
+  const isIN = mode === 'IN';
   const btnIn = $('btnIn'), btnOut = $('btnOut');
-  if (mode === 'IN') {
-    btnIn.className = 'flex-1 py-3 text-lg font-bold rounded-xl transition bg-green-600 text-white ring-4 ring-green-400';
-    btnOut.className = 'flex-1 py-3 text-lg font-bold rounded-xl transition bg-slate-700 text-slate-300 hover:bg-slate-600';
-  } else {
-    btnOut.className = 'flex-1 py-3 text-lg font-bold rounded-xl transition bg-amber-600 text-white ring-4 ring-amber-400';
-    btnIn.className = 'flex-1 py-3 text-lg font-bold rounded-xl transition bg-slate-700 text-slate-300 hover:bg-slate-600';
+  if (btnIn && btnOut) {
+    if (isIN) {
+      btnIn.className = 'flex-1 py-3 text-lg font-bold rounded-xl transition bg-green-600 text-white ring-4 ring-green-400';
+      btnOut.className = 'flex-1 py-3 text-lg font-bold rounded-xl transition bg-slate-700 text-slate-300 hover:bg-slate-600';
+    } else {
+      btnOut.className = 'flex-1 py-3 text-lg font-bold rounded-xl transition bg-amber-600 text-white ring-4 ring-amber-400';
+      btnIn.className = 'flex-1 py-3 text-lg font-bold rounded-xl transition bg-slate-700 text-slate-300 hover:bg-slate-600';
+    }
   }
   clearTimeout(resetTimer);
   pauseUntil = 0;
@@ -128,11 +142,7 @@ function speak(t) {
   if (!sound) return;
   try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'vi-VN'; speechSynthesis.speak(u); } catch (e) {}
 }
-$('btnSound').onclick = () => {
-  sound = !sound;
-  $('btnSound').textContent = 'Âm thanh: ' + (sound ? 'Bật' : 'Tắt');
-  if (sound) speak('Đã bật âm thanh');
-};
+$('btnSound').onclick = () => { sound = !sound; $('btnSound').textContent = 'Âm thanh: ' + (sound ? 'Bật' : 'Tắt'); };
 
 // ===== Camera =====
 navigator.mediaDevices.getUserMedia({video: {width: 1280, height: 720}, audio: false})
@@ -170,8 +180,9 @@ function setMsg(title, sub, color) {
   $('sub').textContent = sub;
 }
 function setIdle() {
-  setMsg(scanMode === 'IN' ? 'Đang chờ quét VÀO…' : 'Đang chờ quét RA…', 'Nhìn thẳng vào camera', '#475569');
-  $('title').style.color = '';
+  const txt = scanMode === 'IN' ? 'VÀO' : 'RA';
+  const col = scanMode === 'IN' ? '#22c55e' : '#f97316';
+  setMsg(`Đang chờ quét ${txt}…`, 'Nhìn thẳng vào camera', col);
   $('time').textContent = ''; $('simTxt').textContent = ''; $('simBar').style.width = '0%';
 }
 function setSim(sim, color) {
@@ -220,7 +231,6 @@ function handle(r) {
 
   if (reason === 'no_face') { clearBox(); setIdle(); return; }
 
-  // Đang gom đủ số khung hình để xác thực: chưa kết luận, KHÔNG khóa cooldown
   if (reason === 'verifying') {
     drawBox(r.bbox, '#eab308', 'Đang xác thực…');
     setMsg('Đang xác thực…', REASONS.verifying, '#eab308');
@@ -228,14 +238,13 @@ function handle(r) {
     return;
   }
 
-  // Chỉ coi là thành công khi backend xác nhận "accepted"
-  const ok = reason === 'accepted';
+  const ok = r.matched || reason === 'accepted';
   const isDuplicate = reason === 'duplicate';
   const empName = r.full_name || r.employee_id || 'Nhân viên';
-  const color = ok ? '#22c55e' : (isDuplicate ? '#38bdf8' : '#ef4444');
+  const color = ok ? (scanMode === 'IN' ? '#22c55e' : '#f97316') : (isDuplicate ? '#38bdf8' : '#ef4444');
   const time = new Date(r.timestamp || Date.now()).toLocaleTimeString('vi-VN');
   const why = REASONS[reason] || reason || 'Từ chối';
-  const statusInfo = r.status_msg || why;
+  const statusInfo = r.status_msg || (r.recorded ? `Đã ghi nhận ${scanMode === 'IN' ? 'VÀO' : 'RA'}` : why);
 
   if (ok) {
     drawBox(r.bbox, color, `${empName} · ${(sim * 100).toFixed(1)}%`);
@@ -251,14 +260,12 @@ function handle(r) {
   $('time').textContent = time;
   setSim(sim, color);
 
-  // Chỉ lưu vào "5 lượt quét gần nhất" các kết quả có ý nghĩa
   if (!NO_HISTORY.has(reason)) {
     addHistory(`${empName} [${scanMode}]`, statusInfo, time, color, ok);
   }
 
   if (ok) speak(`Xin chào ${empName}, ${statusInfo}`);
 
-  // Thời gian nghỉ trước khi quét tiếp
   let wait = 2500;
   if (ok) wait = COOLDOWN_MS;
   else if (isDuplicate) wait = 3000;
@@ -271,21 +278,31 @@ async function scan() {
   if (busy || Date.now() < pauseUntil) return;
   busy = true;
   try {
-    const blob = await grab();
-    if (!blob) return;
     const fd = new FormData();
-    fd.append('file', blob, 'frame.jpg');
+    for (let i = 0; i < 3; i++) {
+      const blob = await grab();
+      if (!blob) return;
+      fd.append('files', blob, `frame_${i}.jpg`);
+      if (i < 2) await new Promise(resolve => setTimeout(resolve, 180));
+    }
     fd.append('device_id', DEVICE_ID);
-    fd.append('scan_type', scanMode); // Gửi chế độ IN/OUT
+    fd.append('scan_type', scanMode);
     fd.append('lat', LAT); fd.append('lon', LON);
+    
     const res = await fetch(API, {method: 'POST', body: fd});
     if (!res.ok) throw new Error(res.status);
     handle(await res.json());
   } catch (e) {
-    setMsg('Mất kết nối máy chủ', 'Đang thử lại…', '#eab308');
+    setMsg('Mất kết nối', 'Đang thử lại…', '#eab308');
   } finally { busy = false; }
 }
+
 setInterval(scan, SCAN_MS);
+fetch('/api/health').then(response => response.json()).then(health => {
+  const marker = document.querySelector('#simBar + div');
+  if (marker && health.threshold) marker.style.left = `${health.threshold * 100}%`;
+}).catch(() => {});
+setMode('IN');
 </script>
 </body>
 </html>

@@ -2,6 +2,12 @@
 .venv/
 __pycache__/
 *.py[cod]
+data/private/
+data/face/
+app/frontend/vendor/mediapipe/
+*.sqlite3*
+hrm.db*
+.pytest_cache/
 models/
 
 models/
