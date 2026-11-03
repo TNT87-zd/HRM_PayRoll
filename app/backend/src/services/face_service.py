@@ -111,9 +111,10 @@ class FaceService:
         res["reason"] = "candidate"   # ứng viên của 1 khung hình, chờ xác nhận nhiều khung
         return res
 
-    def recognize(self, img_bgr: np.ndarray, device_id: str = "", lat=None, lon=None) -> dict:
+    def recognize(self, img_bgr: np.ndarray, device_id: str = "", lat=None, lon=None, scan_type="IN") -> dict:
         """Chỉ chấp nhận khi VOTES_REQUIRED khung hình liên tiếp cùng khớp 1 nhân viên."""
         res = self._recognize_once(img_bgr, device_id, lat, lon)
+        device_id = (device_id, scan_type)
         now = time.monotonic()
 
         if res["reason"] != "candidate":
@@ -127,7 +128,7 @@ class FaceService:
         votes = votes[-VOTES_REQUIRED:]
         self._votes[device_id] = votes
 
-        last = self._last_seen.get(emp)
+        last = self._last_seen.get((emp, scan_type))
         if last is not None and now - last < DUPLICATE_WINDOW_S:
             res["reason"] = "duplicate"
             return res
@@ -139,7 +140,7 @@ class FaceService:
 
         res["similarity"] = round(sum(v[1] for v in votes) / len(votes), 3)
         self._votes.pop(device_id, None)
-        self._last_seen[emp] = now
+        self._last_seen[(emp, scan_type)] = now
         res["reason"] = "accepted"
         return res
 

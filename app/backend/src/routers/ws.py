@@ -1,4 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from hrm.auth import session_user, COOKIE
 from sqlalchemy.orm import Session
 from database import get_db
 from schemas import EnrollResponse
@@ -28,6 +29,10 @@ manager = ConnectionManager()
 
 @router.websocket("/ws/events")
 async def events(ws: WebSocket):
+    u = session_user(ws.cookies.get(COOKIE))
+    if not u or u["role"] != "hr":
+        await ws.close(code=1008)
+        return
     await manager.connect(ws)
     try:
         while True:

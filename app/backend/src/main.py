@@ -60,7 +60,7 @@ app.include_router(ws.router)
 
 @app.get("/api/health", tags=["health"])
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "build": "portal-fix-20261104"}
 
 
 # app/backend/src/main.py -> app/frontend
