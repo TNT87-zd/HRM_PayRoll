@@ -1,0 +1,342 @@
+import csv
+import hashlib
+import io
+import json
+import math
+import uuid
+from datetime import date, datetime, timedelta
+from typing import Literal
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field, ConfigDict
+from hrm import core
+from hrm.auth import hr, user
+from hrm.store import db, records, get, put, audit, ROOT
+
+router = APIRouter(prefix='/api/hrm',tags=['HRM workflow'])
+
+class Model(BaseModel):
+    model_config = ConfigDict(extra='forbid',allow_inf_nan=False)
+
+class Employee(Model):
+    employee_id: str = Field(pattern=r'^[A-Za-z0-9_-]{1,40}$')
+    full_name: str = Field(min_length=1,max_length=120)
+    branch_id: str = Field(pattern=r'^[A-Za-z0-9_-]{1,40}$')
+    contract_type: Literal['FT','PT']
+    base_salary: int = Field(default=0,ge=0,le=10000000000)
+    hourly_rate: int = Field(default=0,ge=0,le=100000000)
+    active: bool = True
+
+class Shift(Model):
+    shift_id: str = Field(pattern=r'^[A-Za-z0-9_-]{1,80}$')
+    employee_id: str
+    branch_id: str
+    start: datetime
+    end: datetime
+    break_minutes: int = Field(default=0,ge=0,le=240)
+    approved_ot_minutes: int = Field(default=0,ge=0,le=240)
+    ot_multiplier: float = Field(default=1.5,ge=1,le=5)
+
+class ManualEvent(Model):
+    employee_id: str
+    shift_id: str
+    scan_type: Literal['IN','OUT']
+    ts: datetime
+    reason: str = Field(min_length=5,max_length=300)
+
+class Leave(Model):
+    employee_id: str
+    start_date: date
+    end_date: date
+    leave_type: Literal['PAID','UNPAID']
+    reason: str = Field(min_length=3,max_length=300)
+
+class Decision(Model):
+    status: Literal['approved','rejected']
+
+class Adjustment(Model):
+    allowance: int = Field(default=0,ge=0,le=10000000000)
+    bonus: int = Field(default=0,ge=0,le=10000000000)
+    insurance: int = Field(default=0,ge=0,le=10000000000)
+    tax: int = Field(default=0,ge=0,le=10000000000)
+    other_deduction: int = Field(default=0,ge=0,le=10000000000)
+
+class Run(Model):
+    standard_hours: float = Field(default=208,gt=0,le=744)
+    adjustments: dict[str,Adjustment] = Field(default_factory=dict)
+    note: str = Field(min_length=5,max_length=500)
+
+class Close(Model):
+    reviewed: Literal[True]
+    input_hash: str
+
+
+def month_check(month):
+    try:
+        d=date.fromisoformat(month+'-01')
+        if d.strftime('%Y-%m')!=month:
+            raise ValueError()
+    except ValueError:
+        raise HTTPException(422,'Kỳ lương phải có dạng YYYY-MM')
+
+def unlocked(con, month):
+    p=get(con,'payroll',month)
+    if p and p['status']=='finalized':
+        raise HTTPException(409,f'Kỳ {month} đã chốt; không được đổi công hoặc lịch ca')
+
+def employee_exists(con,eid):
+    e=get(con,'employees',eid)
+    if not e or not e['active']:
+        raise HTTPException(422,'Nhân viên không tồn tại hoặc đã ngừng hoạt động')
+    return e
+
+def scope(u,rows):
+    return rows if u['role']=='hr' else [r for r in rows if r.get('employee_id')==u['employee_id']]
+
+@router.get('/employees')
+def employees(u=Depends(user)):
+    with db() as con:
+        return scope(u,records(con,'employees'))
+
+@router.put('/employees')
+def save_employee(body: Employee,u=Depends(hr)):
+    if (body.contract_type=='FT' and not body.base_salary) or (body.contract_type=='PT' and not body.hourly_rate):
+        raise HTTPException(422,'FT cần lương tháng; PT cần lương giờ > 0')
+    with db(True) as con:
+        old=get(con,'employees',body.employee_id)
+        put(con,'employees',body.employee_id,body.model_dump())
+        audit(con,u['username'],'employee_update',{'before':old,'after':body.model_dump()})
+    return body
+
+@router.get('/shifts')
+def shifts(month: str,u=Depends(user)):
+    month_check(month)
+    with db() as con:
+        return scope(u,[s for s in records(con,'shifts') if s['start'][:7]==month])
+
+@router.put('/shifts')
+def save_shift(body: Shift,u=Depends(hr)):
+    s=body.model_dump(mode='json')
+    start,end=core.dt(s['start']),core.dt(s['end'])
+    s['start'],s['end']=start.isoformat(),end.isoformat()
+    hours=(end-start).total_seconds()/3600
+    if not 0<hours<=16 or body.break_minutes>=hours*60:
+        raise HTTPException(422,'Ca phải dài 0–16 giờ, giờ nghỉ nhỏ hơn độ dài ca')
+    with db(True) as con:
+        e=employee_exists(con,body.employee_id)
+        if e['branch_id']!=body.branch_id:
+            raise HTTPException(422,'Chi nhánh ca khác chi nhánh nhân viên')
+        unlocked(con,s['start'][:7])
+        old=get(con,'shifts',body.shift_id)
+        if old:
+            unlocked(con,old['start'][:7])
+            if any(x['shift_id']==body.shift_id for x in records(con,'events')):
+                raise HTTPException(409,'Ca đã có log; không được sửa lịch sau chấm công')
+        for other in records(con,'shifts'):
+            if other['employee_id']==body.employee_id and other['shift_id']!=body.shift_id:
+                if start<core.dt(other['end']) and end>core.dt(other['start']):
+                    raise HTTPException(409,'Ca bị chồng thời gian')
+        put(con,'shifts',body.shift_id,s)
+        audit(con,u['username'],'shift_update',{'before':old,'after':s})
+    return s
+
+def record_event(con,eid,kind,ts,actor,source,reason='',shift_id=None,event_id=None,device_id=None):
+    employee_exists(con,eid)
+    stamp=core.dt(ts)
+    candidates=[s for s in records(con,'shifts') if s['employee_id']==eid
+                and core.dt(s['start'])-timedelta(hours=2)<=stamp<=core.dt(s['end'])+timedelta(hours=4)
+                and (kind=='OUT' or stamp<core.dt(s['end']))]
+    if shift_id:
+        candidates=[s for s in candidates if s['shift_id']==shift_id]
+    if device_id:
+        p=ROOT/'data/clean/devices.csv'
+        with p.open(encoding='utf-8-sig') as f:
+            device=next((r for r in csv.DictReader(f) if r['device_id']==device_id),None)
+        if not device:
+            raise HTTPException(422,'Thiết bị không được đăng ký')
+        candidates=[s for s in candidates if s['branch_id']==device['branch_id']]
+    if len(candidates)!=1:
+        raise HTTPException(409,'Chưa có lịch ca phù hợp hoặc có nhiều ca phù hợp; HR cần kiểm tra')
+    s=candidates[0]
+    unlocked(con,s['start'][:7])
+    key=event_id or uuid.uuid4().hex
+    previous=get(con,'events',key)
+    if previous:
+        return previous
+    for e in records(con,'events'):
+        if e['shift_id']==s['shift_id'] and e['scan_type']==kind and abs((core.dt(e['ts'])-stamp).total_seconds())<60:
+            return e
+    e=dict(event_id=key,employee_id=eid,shift_id=s['shift_id'],scan_type=kind,ts=stamp.isoformat(),source=source,reason=reason)
+    put(con,'events',key,e)
+    audit(con,actor,'attendance_event',e)
+    return e
+
+@router.post('/events/manual')
+def manual(body: ManualEvent,u=Depends(hr)):
+    with db(True) as con:
+        return record_event(con,body.employee_id,body.scan_type,body.ts.isoformat(),u['username'],'MANUAL',body.reason,body.shift_id)
+
+@router.get('/events')
+def events(month: str,u=Depends(user)):
+    month_check(month)
+    with db() as con:
+        ids={s['shift_id'] for s in records(con,'shifts') if s['start'][:7]==month}
+        return scope(u,[e for e in records(con,'events') if e['shift_id'] in ids])
+
+@router.post('/events/import-live')
+def import_live(u=Depends(hr)):
+    p=ROOT/'data/live/scan_log.csv'
+    if not p.exists():
+        return {'imported':0,'errors':[]}
+    errors=[]
+    imported=0
+    with p.open(encoding='utf-8-sig') as f:
+        for i,r in enumerate(csv.DictReader(f),2):
+            key='legacy-'+hashlib.sha256(json.dumps(r,sort_keys=True).encode()).hexdigest()
+            try:
+                with db(True) as con:
+                    if get(con,'events',key):
+                        continue
+                    kind=r['scan_type'].upper()
+                    if kind not in ('IN','OUT'):
+                        raise ValueError('scan_type không hợp lệ')
+                    before=len(records(con,'events'))
+                    record_event(con,r['employee_id'],kind,r['ts'],u['username'],'LEGACY_FACE',event_id=key,device_id=r['device_id'])
+                    imported+=len(records(con,'events'))-before
+            except (HTTPException,ValueError,KeyError) as ex:
+                errors.append({'line':i,'error':str(getattr(ex,'detail',ex))})
+    return {'imported':imported,'errors':errors}
+
+@router.post('/leaves')
+def request_leave(body: Leave,u=Depends(user)):
+    if u['role']!='hr' and body.employee_id!=u['employee_id']:
+        raise HTTPException(403,'Chỉ được gửi đơn cho chính mình')
+    if body.end_date<body.start_date or (body.end_date-body.start_date).days>366:
+        raise HTTPException(422,'Khoảng nghỉ không hợp lệ')
+    item=body.model_dump(mode='json') | {'leave_id':uuid.uuid4().hex,'status':'pending'}
+    with db(True) as con:
+        employee_exists(con,body.employee_id)
+        put(con,'leaves',item['leave_id'],item)
+        audit(con,u['username'],'leave_request',item)
+    return item
+
+@router.get('/leaves')
+def leaves(u=Depends(user)):
+    with db() as con:
+        return scope(u,records(con,'leaves'))
+
+@router.post('/leaves/{key}/decision')
+def approve_leave(key: str,body: Decision,u=Depends(hr)):
+    with db(True) as con:
+        l=get(con,'leaves',key)
+        if not l:
+            raise HTTPException(404,'Không tìm thấy đơn')
+        if l['status']!='pending':
+            raise HTTPException(409,'Đơn đã được xử lý')
+        for p in records(con,'payroll'):
+            if p['status']=='finalized' and l['start_date'][:7]<=p['month']<=l['end_date'][:7]:
+                raise HTTPException(409,'Đơn thuộc kỳ lương đã chốt')
+        if body.status=='approved':
+            for other in records(con,'leaves'):
+                if other['employee_id']==l['employee_id'] and other['status']=='approved' and l['start_date']<=other['end_date'] and l['end_date']>=other['start_date']:
+                    raise HTTPException(409,'Trùng khoảng nghỉ đã duyệt')
+        l['status']=body.status
+        l['reviewed_by']=u['username']
+        put(con,'leaves',key,l)
+        audit(con,u['username'],'leave_decision',l)
+    return l
+
+def inputs(con,month):
+    shifts=[s for s in records(con,'shifts') if s['start'][:7]==month]
+    ids={s['shift_id'] for s in shifts}
+    return {'shifts':shifts,'events':[e for e in records(con,'events') if e['shift_id'] in ids],
+            'leaves':[l for l in records(con,'leaves') if l['status']=='approved' and l['start_date'][:7]<=month<=l['end_date'][:7]],
+            'employees':records(con,'employees')}
+
+def fingerprint(data):
+    return hashlib.sha256(json.dumps(data,sort_keys=True).encode()).hexdigest()
+
+@router.get('/attendance')
+def attendance(month: str,u=Depends(user)):
+    month_check(month)
+    with db() as con:
+        data=inputs(con,month)
+        return scope(u,core.timesheet(data['shifts'],data['events'],data['leaves']))
+
+@router.post('/payroll/{month}/calculate')
+def calculate(month: str,body: Run,u=Depends(hr)):
+    month_check(month)
+    with db(True) as con:
+        unlocked(con,month)
+        data=inputs(con,month)
+        rows=core.timesheet(data['shifts'],data['events'],data['leaves'])
+        if not rows:
+            raise HTTPException(422,'Chưa có lịch ca trong kỳ')
+        if set(body.adjustments)-{e['employee_id'] for e in data['employees']}:
+            raise HTTPException(422,'Mã nhân viên điều chỉnh không tồn tại')
+        params=body.model_dump()
+        try:
+            pays=core.payroll(data['employees'],rows,params,params['adjustments'])
+        except ValueError as ex:
+            raise HTTPException(422,str(ex))
+        result=dict(month=month,status='draft',policy='DEMO_CONFIGURABLE_V1',parameters=params,
+                    input_hash=fingerprint({"data":data,"parameters":params}),attendance=rows,rows=pays,
+                    calculated_at=datetime.now(core.VN).isoformat(),calculated_by=u['username'])
+        put(con,'payroll',month,result)
+        audit(con,u['username'],'payroll_calculate',{'month':month,'input_hash':result['input_hash']})
+    return result
+
+@router.post('/payroll/{month}/finalize')
+def finalize(month: str,body: Close,u=Depends(hr)):
+    month_check(month)
+    with db(True) as con:
+        unlocked(con,month)
+        p=get(con,'payroll',month)
+        if not p:
+            raise HTTPException(404,'Chưa tính bảng lương')
+        if p['input_hash']!=body.input_hash or p['input_hash']!=fingerprint({'data':inputs(con,month),'parameters':p['parameters']}):
+            raise HTTPException(409,'Dữ liệu đã thay đổi; cần tính và kiểm tra lại')
+        if any(r['status']=='incomplete' or 'leave_and_work_conflict' in r['flags'] for r in p['attendance']):
+            raise HTTPException(409,'Còn thiếu giờ vào/ra hoặc nghỉ phép trùng ngày làm')
+        if any(core.dt(s['end'])>datetime.now(core.VN) for s in inputs(con,month)['shifts']):
+            raise HTTPException(409,'Ca làm việc chưa kết thúc')
+        p.update(status='finalized',finalized_by=u['username'],finalized_at=datetime.now(core.VN).isoformat())
+        put(con,'payroll',month,p)
+        audit(con,u['username'],'payroll_finalize',{'month':month,'input_hash':p['input_hash']})
+    return p
+
+@router.get('/payroll/{month}')
+def view_payroll(month: str,u=Depends(user)):
+    month_check(month)
+    with db() as con:
+        p=get(con,'payroll',month)
+        if not p or (u['role']!='hr' and p['status']!='finalized'):
+            raise HTTPException(404,'Chưa có bảng lương được phép xem')
+        if u['role']!='hr':
+            return {'month':month,'status':p['status'],'policy':p['policy'],'rows':scope(u,p['rows'])}
+        return p
+
+@router.get('/payroll/{month}/export')
+def export(month: str,u=Depends(user)):
+    p=view_payroll(month,u)
+    from openpyxl import Workbook
+    wb=Workbook()
+    ws=wb.active
+    ws.title='Payroll DEMO'
+    if p['rows']:
+        ws.append(list(p['rows'][0]))
+        for row in p['rows']:
+            ws.append([("'"+v if isinstance(v,str) and v.startswith(('=','+','-','@')) else v) for v in row.values()])
+    ws.freeze_panes='A2'
+    for col in ws.columns:
+        ws.column_dimensions[col[0].column_letter].width=23
+    stream=io.BytesIO()
+    wb.save(stream)
+    stream.seek(0)
+    return StreamingResponse(stream,media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                             headers={'Content-Disposition':f'attachment; filename="payroll_{month}.xlsx"'})
+
+@router.get('/audit')
+def audit_log(u=Depends(hr)):
+    with db() as con:
+        return [dict(r) for r in con.execute('SELECT * FROM audit ORDER BY id DESC LIMIT 200')]

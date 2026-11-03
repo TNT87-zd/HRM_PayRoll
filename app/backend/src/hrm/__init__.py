@@ -1,0 +1,1 @@
+"""Transactional HRM demo extension."""

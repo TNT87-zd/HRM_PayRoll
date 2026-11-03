@@ -12,6 +12,7 @@
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-6">
+<div style="padding:12px;background:#fff3cd;color:#302900">Đăng nhập tài khoản HR/Kiosk tại <a href="/portal.html">cổng quản lý</a> trước. Cần có lịch ca và GPS. Bản demo chưa kiểm tra liveness.</div>
   <div class="flex justify-between items-center mb-4">
     <div>
       <h1 class="text-2xl font-bold">Cafe 5TN · Chấm công khuôn mặt</h1>
@@ -279,10 +280,10 @@ async function scan() {
     fd.append('scan_type', scanMode); // Gửi chế độ IN/OUT
     fd.append('lat', LAT); fd.append('lon', LON);
     const res = await fetch(API, {method: 'POST', body: fd});
-    if (!res.ok) throw new Error(res.status);
+    if (!res.ok) { const error = await res.json(); throw new Error(error.detail || ('HTTP ' + res.status)); }
     handle(await res.json());
   } catch (e) {
-    setMsg('Mất kết nối máy chủ', 'Đang thử lại…', '#eab308');
+    setMsg('Chưa ghi nhận chấm công', String(e.message), '#eab308');
   } finally { busy = false; }
 }
 setInterval(scan, SCAN_MS);
