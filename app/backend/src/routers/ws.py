@@ -1,8 +1,8 @@
+import hashlib
+import time
+import asyncio
+from models import User, LoginSession
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from hrm.auth import session_user, COOKIE
-from sqlalchemy.orm import Session
-from database import get_db
-from schemas import EnrollResponse
 
 router = APIRouter()
 
@@ -29,13 +29,26 @@ manager = ConnectionManager()
 
 @router.websocket("/ws/events")
 async def events(ws: WebSocket):
-    u = session_user(ws.cookies.get(COOKIE))
-    if not u or u["role"] != "hr":
+    def allowed():
+        token=ws.cookies.get('hrm_session','')
+        with ws.app.state.session_factory() as db:
+            login=db.get(LoginSession,hashlib.sha256(token.encode()).hexdigest()) if token else None
+            user=db.get(User,login.user_id) if login and login.expires_at>time.time() else None
+            return bool(user and user.enabled and user.role in {'hr','manager'})
+    if not allowed():
         await ws.close(code=1008)
         return
     await manager.connect(ws)
     try:
         while True:
-            await ws.receive_text()    # giữ kết nối
+            if not allowed():
+                await ws.close(code=1008)
+                break
+            try:
+                await asyncio.wait_for(ws.receive_text(),timeout=30)
+            except asyncio.TimeoutError:
+                continue
     except WebSocketDisconnect:
+        pass
+    finally:
         manager.disconnect(ws)

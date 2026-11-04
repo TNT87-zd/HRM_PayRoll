@@ -7,6 +7,9 @@ import uuid
 from datetime import date, datetime, timedelta
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from models import WorkflowAudit
+from hrm.store import settings
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, ConfigDict
 from hrm import core
@@ -98,15 +101,7 @@ def employees(u=Depends(user)):
     with db() as con:
         return scope(u,records(con,'employees'))
 
-@router.put('/employees')
-def save_employee(body: Employee,u=Depends(hr)):
-    if (body.contract_type=='FT' and not body.base_salary) or (body.contract_type=='PT' and not body.hourly_rate):
-        raise HTTPException(422,'FT cần lương tháng; PT cần lương giờ > 0')
-    with db(True) as con:
-        old=get(con,'employees',body.employee_id)
-        put(con,'employees',body.employee_id,body.model_dump())
-        audit(con,u['username'],'employee_update',{'before':old,'after':body.model_dump()})
-    return body
+# Employee creation and updates use /api/employees, the shared registration API.
 
 @router.get('/shifts')
 def shifts(month: str,u=Depends(user)):
@@ -140,23 +135,27 @@ def save_shift(body: Shift,u=Depends(hr)):
         audit(con,u['username'],'shift_update',{'before':old,'after':s})
     return s
 
-def record_event(con,eid,kind,ts,actor,source,reason='',shift_id=None,event_id=None,device_id=None):
-    employee_exists(con,eid)
+def record_event(con,eid,kind,ts,actor,source,reason='',shift_id=None,event_id=None,device_id=None,similarity=0):
+    employee=employee_exists(con,eid)
     stamp=core.dt(ts)
-    candidates=[s for s in records(con,'shifts') if s['employee_id']==eid
+    candidates=[s for s in records(con,'shifts') if s['employee_id']==eid and s['branch_id']==employee['branch_id']
                 and core.dt(s['start'])-timedelta(hours=2)<=stamp<=core.dt(s['end'])+timedelta(hours=4)
                 and (kind=='OUT' or stamp<core.dt(s['end']))]
     if shift_id:
         candidates=[s for s in candidates if s['shift_id']==shift_id]
     if device_id:
-        p=ROOT/'data/clean/devices.csv'
+        p=settings().data_dir/'clean/devices.csv'
+        if not p.is_file():
+            raise HTTPException(422,'Thiếu danh sách thiết bị data/clean/devices.csv')
         with p.open(encoding='utf-8-sig') as f:
             device=next((r for r in csv.DictReader(f) if r['device_id']==device_id),None)
         if not device:
             raise HTTPException(422,'Thiết bị không được đăng ký')
         candidates=[s for s in candidates if s['branch_id']==device['branch_id']]
-    if len(candidates)!=1:
-        raise HTTPException(409,'Chưa có lịch ca phù hợp hoặc có nhiều ca phù hợp; HR cần kiểm tra')
+    if not candidates:
+        raise HTTPException(409,'no_shift: Chưa có lịch ca phù hợp với nhân viên, chi nhánh và thời điểm chấm công')
+    if len(candidates)>1:
+        raise HTTPException(409,'ambiguous_shift: Có nhiều ca phù hợp; HR cần kiểm tra lịch ca')
     s=candidates[0]
     unlocked(con,s['start'][:7])
     key=event_id or uuid.uuid4().hex
@@ -166,7 +165,7 @@ def record_event(con,eid,kind,ts,actor,source,reason='',shift_id=None,event_id=N
     for e in records(con,'events'):
         if e['shift_id']==s['shift_id'] and e['scan_type']==kind and abs((core.dt(e['ts'])-stamp).total_seconds())<60:
             return e
-    e=dict(event_id=key,employee_id=eid,shift_id=s['shift_id'],scan_type=kind,ts=stamp.isoformat(),source=source,reason=reason)
+    e=dict(event_id=key,employee_id=eid,shift_id=s['shift_id'],scan_type=kind,ts=stamp.isoformat(),source=source,reason=reason,device_id=device_id,similarity=similarity)
     put(con,'events',key,e)
     audit(con,actor,'attendance_event',e)
     return e
@@ -185,7 +184,7 @@ def events(month: str,u=Depends(user)):
 
 @router.post('/events/import-live')
 def import_live(u=Depends(hr)):
-    p=ROOT/'data/live/scan_log.csv'
+    p=settings().data_dir/'live/scan_log.csv'
     if not p.exists():
         return {'imported':0,'errors':[]}
     errors=[]
@@ -339,4 +338,45 @@ def export(month: str,u=Depends(user)):
 @router.get('/audit')
 def audit_log(u=Depends(hr)):
     with db() as con:
-        return [dict(r) for r in con.execute('SELECT * FROM audit ORDER BY id DESC LIMIT 200')]
+        return [dict(id=r.id,ts=datetime.fromtimestamp(r.ts,core.VN).isoformat(),actor=r.actor,action=r.action,payload=json.loads(r.payload)) for r in con.scalars(select(WorkflowAudit).order_by(WorkflowAudit.id.desc()).limit(200))]
+
+
+@router.get('/events/unassigned')
+def unassigned(u=Depends(hr)):
+    from models import AttendanceRecord, AttendanceAssignment
+    with db() as con:
+        rows=con.scalars(select(AttendanceRecord).where(~AttendanceRecord.id.in_(select(AttendanceAssignment.attendance_id))).order_by(AttendanceRecord.timestamp.desc()).limit(200))
+        return [dict(attendance_id=e.id,employee_id=e.employee_id,scan_type=e.scan_type,
+                     ts=datetime.fromtimestamp(e.timestamp,core.VN).isoformat(),device_id=e.device_id) for e in rows]
+
+class Assign(Model):
+    shift_id: str
+    reason: str = Field(min_length=5,max_length=300)
+
+@router.post('/events/{attendance_id}/assign')
+def assign(attendance_id: int, body: Assign, u=Depends(hr)):
+    from models import AttendanceRecord, AttendanceAssignment
+    with db(True) as con:
+        old=con.get(AttendanceRecord,attendance_id)
+        if not old:
+            raise HTTPException(404,'Không tìm thấy lượt chấm công')
+        if con.scalar(select(AttendanceAssignment).where(AttendanceAssignment.attendance_id==attendance_id)):
+            raise HTTPException(409,'Lượt chấm công đã được gắn ca')
+        s=get(con,'shifts',body.shift_id)
+        if not s or s['employee_id']!=old.employee_id:
+            raise HTTPException(422,'Ca không thuộc nhân viên này')
+        unlocked(con,s['start'][:7])
+        stamp=datetime.fromtimestamp(old.timestamp,core.VN)
+        if not core.dt(s['start'])-timedelta(hours=2)<=stamp<=core.dt(s['end'])+timedelta(hours=4):
+            raise HTTPException(422,'Thời điểm quét nằm ngoài khoảng ca')
+        if old.scan_type=='IN' and stamp>=core.dt(s['end']):
+            raise HTTPException(422,'Giờ vào phải trước kết thúc ca')
+        # For old device scans, preserve the branch check too.
+        from repository import read_csv
+        device=next((d for d in read_csv(settings().data_dir/'clean/devices.csv') if d['device_id']==old.device_id),None)
+        if not device or device['branch_id']!=s['branch_id']:
+            raise HTTPException(422,'Thiết bị không thuộc chi nhánh ca')
+        con.add(AttendanceAssignment(event_id='assigned-'+str(old.id),attendance_id=old.id,
+             shift_id=body.shift_id,source='RECONCILED',reason=body.reason))
+        audit(con,u['username'],'attendance_assign',{'attendance_id':old.id,'shift_id':body.shift_id,'reason':body.reason})
+    return {'ok':True}

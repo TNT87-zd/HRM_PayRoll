@@ -1,0 +1,91 @@
+/* Theme "Cà phê di sản": nền kem, thanh bên nâu đậm, nhấn nâu hổ phách. Dùng chung cho mọi trang. */
+:root{--bg:#f8f2e8;--card:#fff;--ink:#2b1d14;--muted:#7a6a5c;--line:#e8dccb;--side:#2a1810;--side2:#3a2318;
+--brand:#8a4b12;--brand2:#a65a14;--soft:#f3e7d3;--ok:#1f8f52;--warn:#b7791f;--bad:#b83a2e;--r:12px;
+--font:"Be Vietnam Pro",system-ui,"Segoe UI",sans-serif}
+html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body[data-shell]{margin:0;background:var(--bg)!important;color:var(--ink)!important;font-family:var(--font)}
+:focus-visible{outline:3px solid #d9962b;outline-offset:2px}
+
+/* ===== Khung ứng dụng ===== */
+.app-shell{display:grid;grid-template-columns:256px 1fr;min-height:100vh}
+.side{background:var(--side);color:#f3e7d3;padding:20px 14px;position:sticky;top:0;height:100vh;overflow:auto}
+.side .logo{display:flex;gap:10px;align-items:center;padding:4px 8px 18px;border-bottom:1px solid #4a3123;margin-bottom:12px}
+.side .logo b{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--brand2);color:#fff;font-size:18px}
+.side .logo span{font-weight:700;line-height:1.2;font-size:15px}.side .logo small{display:block;font-weight:400;color:#c9b199;font-size:12px}
+.side h4{margin:16px 10px 6px;font-size:12px;font-weight:600;color:#b69a80;letter-spacing:.02em}
+.side a{display:block;padding:10px 12px;margin:2px 0;border-radius:10px;color:#ead9c3;text-decoration:none;font-size:14px;border-left:3px solid transparent}
+.side a:hover{background:var(--side2)}
+.side a.on{background:#fbf3e6;color:var(--side);font-weight:600;border-left-color:var(--brand2)}
+.side .foot{margin-top:18px;padding:10px 12px;font-size:12px;color:#c9b199;border-top:1px solid #4a3123}
+.app-main{min-width:0}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 28px;background:rgba(248,242,232,.92);
+backdrop-filter:blur(6px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.top h1{font-size:19px;margin:0;font-weight:700}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:99px;font-size:13px;background:#e3f3ea;color:#14663a;font-weight:600}
+.pill i{width:8px;height:8px;border-radius:50%;background:currentColor}.pill.off{background:#fbe5e1;color:var(--bad)}
+.who{font-size:13px;color:var(--muted)}
+.app-content{padding:22px 28px 48px;max-width:1360px}
+@media(max-width:900px){.app-shell{grid-template-columns:1fr}.side{position:static;height:auto;display:flex;gap:4px;overflow-x:auto;padding:10px}
+.side .logo,.side h4,.side .foot{display:none}.side a{white-space:nowrap;border-left:0;border-bottom:3px solid transparent}
+.side a.on{border-bottom-color:var(--brand2)}.top,.app-content{padding-left:14px;padding-right:14px}}
+
+/* ===== Portal (CSS riêng của trang) ===== */
+body[data-shell]>header,body[data-shell] .app-content>header{display:none}
+body[data-shell] main{max-width:none;margin:0;padding:0}
+body[data-shell] section{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px;margin:0 0 18px;box-shadow:0 1px 2px rgba(60,35,15,.05)}
+body[data-shell] h2{font-size:18px;margin:0 0 14px;color:var(--ink)}
+body[data-shell] small,body[data-shell] .hint{color:var(--muted)}
+body[data-shell] input,body[data-shell] select,body[data-shell] textarea{background:#fffdf9;border:1px solid #d9c8b0;color:var(--ink);border-radius:8px}
+body[data-shell] input:focus,body[data-shell] select:focus{border-color:var(--brand2)}
+body[data-shell] button{background:var(--brand);color:#fff;border-radius:8px;font-weight:600}
+body[data-shell] button:hover{background:#6f3a0c}
+body[data-shell] button.secondary{background:var(--soft);color:var(--brand)}
+body[data-shell] a{color:var(--brand)}
+body[data-shell] nav:not(.side){gap:6px;margin:0 0 16px}
+body[data-shell] nav:not(.side) a{background:var(--soft);border-radius:99px;padding:7px 14px;text-decoration:none;font-size:13px}
+body[data-shell] th{background:#f6ecdc;color:#5b4636;font-weight:600}
+body[data-shell] td,body[data-shell] th{border-bottom:1px solid var(--line)}
+body[data-shell] tr:hover td{background:#fdf8ef}
+body[data-shell] #notice{background:#e3f3ea;color:#14663a;border-radius:10px;margin-bottom:14px}
+body[data-shell] #notice.error{background:#fbe5e1;color:var(--bad)}
+body[data-shell] .warn{background:#fff4dc;border:1px solid #ecd49a;color:#6b4b0a;border-radius:10px}
+body[data-shell] #login{margin:40px auto}
+
+/* ===== Trang Tailwind tối (admin) -> sáng ===== */
+body[data-shell] .bg-slate-900{background:transparent!important}
+body[data-shell] .bg-slate-800{background:var(--card)!important;border:1px solid var(--line);box-shadow:0 1px 2px rgba(60,35,15,.05)}
+body[data-shell] .bg-slate-700,body[data-shell] thead.bg-slate-700{background:#f6ecdc!important;color:var(--ink)!important}
+body[data-shell] select.bg-slate-700,body[data-shell] input.bg-slate-700{background:#fffdf9!important;border:1px solid #d9c8b0}
+body[data-shell] .text-slate-100{color:var(--ink)!important}
+body[data-shell] .text-slate-300,body[data-shell] .text-slate-400,body[data-shell] .text-slate-500{color:var(--muted)!important}
+body[data-shell] .border-slate-700,body[data-shell] .border-slate-600{border-color:var(--line)!important}
+body[data-shell] .text-green-400{color:var(--ok)!important}body[data-shell] .text-yellow-400,body[data-shell] .text-yellow-300{color:var(--warn)!important}
+body[data-shell] .text-red-400{color:var(--bad)!important}
+body[data-shell] .bg-sky-500,body[data-shell] .bg-emerald-500{background:var(--brand)!important;color:#fff!important}
+body[data-shell] .tab-btn{color:var(--muted);border-radius:99px}
+body[data-shell] .tab-btn.active{background:var(--brand)!important;color:#fff!important}
+body[data-shell] .hm td.n{background:var(--card)!important;color:var(--ink)}
+
+/* ===== Đăng ký khuôn mặt (enroll.css riêng) ===== */
+body[data-shell] .topbar{background:transparent;border:0;padding:0 0 12px}
+body[data-shell] .topbar .brand,body[data-shell] .topbar nav a{display:none}
+body[data-shell] .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);color:var(--ink)}
+body[data-shell] .primary{background:var(--brand)!important;color:#fff!important}
+body[data-shell] .success{background:var(--ok)!important;color:#fff!important}
+body[data-shell] .quiet{background:var(--soft)!important;color:var(--brand)!important}
+body[data-shell] .step.active{background:var(--side)!important;color:#fff!important}
+body[data-shell] .muted{color:var(--muted)!important}
+
+/* ===== Kiosk & trang chủ: màn hình thiết bị, tông nâu đậm ===== */
+body[data-shell="none"]{background:#1f130d!important;color:#fbf3e6!important;font-family:var(--font)}
+body[data-shell="none"] .bg-slate-900{background:#1f130d!important}
+body[data-shell="none"] .bg-slate-800{background:#2e1d14!important;border-color:#4a3123}
+body[data-shell="none"] .bg-slate-700{background:#4a3123!important}
+body[data-shell="none"] .bg-slate-600{background:#5a3d2c!important}
+body[data-shell="none"] .text-slate-100{color:#fbf3e6!important}
+body[data-shell="none"] .text-slate-300,body[data-shell="none"] .text-slate-400{color:#d8c3a8!important}
+body[data-shell="none"] .text-slate-500,body[data-shell="none"] .text-slate-600{color:#a98f76!important}
+body[data-shell="none"] .border-slate-600,body[data-shell="none"] .border-slate-700{border-color:#4a3123!important}
+body[data-shell="none"] .laser{background:#e8a54b;box-shadow:0 0 14px #e8a54b}
+body[data-shell="none"] .text-indigo-400,body[data-shell="none"] .hover\:text-sky-400:hover{color:#e8a54b!important}

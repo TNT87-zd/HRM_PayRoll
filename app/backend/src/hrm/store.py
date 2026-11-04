@@ -1,71 +1,78 @@
-import csv
-import hashlib
+"""Workflow adapter: shares SQLAlchemy sessions, employees and attendance with main."""
 import json
-import os
-import secrets
-import sqlite3
 from contextlib import contextmanager
-from pathlib import Path
+from contextvars import ContextVar
+from datetime import datetime
+from sqlalchemy import select, text
+from config import PROJECT_ROOT
+from models import Employee, AttendanceRecord, AttendanceAssignment, WorkflowRecord, WorkflowAudit
+from hrm.core import VN, dt
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = PROJECT_ROOT
+context = ContextVar("hrm_context")
 
-def database_path():
-    return Path(os.environ.get('HRM_DB', str(ROOT / 'data/live/hrm.sqlite3')))
+def settings():
+    return context.get()[1]
 
 @contextmanager
 def db(write=False):
-    path = database_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(path, timeout=20)
-    con.row_factory = sqlite3.Row
-    try:
-        con.execute('PRAGMA foreign_keys=ON')
-        if write:
-            con.execute('BEGIN IMMEDIATE')
-        yield con
-        con.commit()
-    except Exception:
-        con.rollback()
-        raise
-    finally:
-        con.close()
+    factory, _ = context.get()
+    with factory() as session:
+        try:
+            if write:
+                session.execute(text("BEGIN IMMEDIATE"))
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+
+def employee_dict(e):
+    return dict(employee_id=e.employee_id, full_name=e.full_name, branch_id=e.branch_id,
+                contract_type=e.contract_type, base_salary=e.base_salary or 0,
+                hourly_rate=e.hourly_rate or 0, active=e.employment_status == "active")
+
+def event_dict(a, e):
+    return dict(event_id=a.event_id, employee_id=e.employee_id, shift_id=a.shift_id,
+                scan_type=e.scan_type, ts=datetime.fromtimestamp(e.timestamp,VN).isoformat(),
+                source=a.source, reason=a.reason)
 
 def records(con, kind):
-    return [json.loads(r[0]) for r in con.execute('SELECT payload FROM records WHERE kind=? ORDER BY id', (kind,))]
+    if kind == "employees":
+        return [employee_dict(e) for e in con.scalars(select(Employee).order_by(Employee.employee_id))]
+    if kind == "events":
+        return [event_dict(a,e) for a,e in con.execute(select(AttendanceAssignment,AttendanceRecord)
+            .join(AttendanceRecord,AttendanceRecord.id==AttendanceAssignment.attendance_id)
+            .order_by(AttendanceAssignment.event_id))]
+    return [json.loads(r.payload) for r in con.scalars(select(WorkflowRecord)
+        .where(WorkflowRecord.kind==kind).order_by(WorkflowRecord.key))]
 
 def get(con, kind, key):
-    row = con.execute('SELECT payload FROM records WHERE kind=? AND id=?', (kind, key)).fetchone()
-    return json.loads(row[0]) if row else None
+    if kind == "employees":
+        e=con.get(Employee,key)
+        return employee_dict(e) if e else None
+    if kind == "events":
+        a=con.get(AttendanceAssignment,key)
+        return event_dict(a,con.get(AttendanceRecord,a.attendance_id)) if a else None
+    row=con.get(WorkflowRecord,(kind,key))
+    return json.loads(row.payload) if row else None
 
 def put(con, kind, key, value):
-    con.execute('INSERT INTO records VALUES(?,?,?) ON CONFLICT(kind,id) DO UPDATE SET payload=excluded.payload',
-                (kind, key, json.dumps(value, ensure_ascii=False, allow_nan=False)))
+    if kind == "employees":
+        raise ValueError("Use the shared employee API")
+    if kind == "events":
+        e=AttendanceRecord(employee_id=value['employee_id'], device_id=value.get('device_id') or 'HR',
+            scan_type=value['scan_type'], timestamp=dt(value['ts']).timestamp(),similarity=value.get('similarity',0))
+        con.add(e); con.flush()
+        con.add(AttendanceAssignment(event_id=key,attendance_id=e.id,shift_id=value['shift_id'],
+            source=value['source'],reason=value.get('reason','')))
+    else:
+        row=con.get(WorkflowRecord,(kind,key))
+        if row is None:
+            row=WorkflowRecord(kind=kind,key=key); con.add(row)
+        row.payload=json.dumps(value,ensure_ascii=False,allow_nan=False)
+    con.flush()
 
 def audit(con, actor, action, data):
-    con.execute('INSERT INTO audit(actor,action,payload) VALUES(?,?,?)',
-                (actor, action, json.dumps(data, ensure_ascii=False, allow_nan=False)))
-
-def password_hash(password, salt=None):
-    salt = salt or secrets.token_hex(16)
-    digest = hashlib.scrypt(password.encode(), salt=bytes.fromhex(salt), n=16384, r=8, p=1).hex()
-    return f'{salt}:{digest}'
-
-def init():
-    with db() as con:
-        con.executescript('''
-        CREATE TABLE IF NOT EXISTS records(kind TEXT NOT NULL,id TEXT NOT NULL,payload TEXT NOT NULL,PRIMARY KEY(kind,id));
-        CREATE TABLE IF NOT EXISTS users(username TEXT PRIMARY KEY,password TEXT NOT NULL,role TEXT NOT NULL,employee_id TEXT);
-        CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,username TEXT NOT NULL REFERENCES users(username),expires REAL NOT NULL);
-        CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY,ts TEXT DEFAULT CURRENT_TIMESTAMP,actor TEXT,action TEXT,payload TEXT);
-        ''')
-    with db(True) as con:
-        if not get(con, 'meta', 'imported'):
-            p = ROOT / 'data/clean/employees.csv'
-            if p.exists():
-                with p.open(encoding='utf-8-sig', newline='') as f:
-                    for r in csv.DictReader(f):
-                        e = dict(employee_id=r['employee_id'], full_name=r.get('full_name') or r['employee_id'],
-                                 branch_id=r['branch_id'], contract_type=r['contract_type'],
-                                 base_salary=int(float(r.get('base_salary') or 0)), hourly_rate=int(float(r.get('hourly_rate') or 0)), active=True)
-                        put(con, 'employees', e['employee_id'], e)
-            put(con, 'meta', 'imported', {'done': True})
+    con.add(WorkflowAudit(actor=actor,action=action,payload=json.dumps(data,ensure_ascii=False,allow_nan=False)))
+    con.flush()

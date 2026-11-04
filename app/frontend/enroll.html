@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <link rel="stylesheet" href="/css/theme.css">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Đăng ký nhân viên · HRM</title>
+  <link rel="stylesheet" href="/css/enroll.css">
+  <script type="module" src="/js/enroll.mjs"></script>
+</head>
+<body data-shell="none">
+<header class="topbar">
+  <div class="brand"><div class="brand-icon" aria-hidden="true">◎</div><div><h1>Đăng ký nhân viên</h1><div class="muted small">Tạo hồ sơ và đăng ký khuôn mặt trong một luồng</div></div></div>
+  <nav><a href="/">Trang chủ</a><a href="/kiosk.html">Kiosk</a><a href="/admin.html">Quản trị</a><span id="account" class="muted small"></span><button id="logout" class="quiet" hidden>Đăng xuất</button></nav>
+</header>
+<main class="layout" id="mainContent" inert>
+  <aside>
+    <section class="panel">
+      <div class="row between"><h2>Nhân viên</h2><button id="newEmployee" class="primary small" type="button">+ Thêm mới</button></div>
+      <label for="search">Tìm theo tên hoặc mã</label><input id="search" type="search" placeholder="Nhập tên hoặc NV0001" autocomplete="off">
+      <div class="row" style="margin-top:10px"><select id="faceFilter" aria-label="Lọc trạng thái FaceID"><option value="">Tất cả trạng thái</option><option value="missing">Chưa có FaceID</option><option value="registered">Đã đăng ký FaceID</option></select></div>
+      <div id="employeeList" class="employee-list" aria-live="polite"></div>
+      <div class="row between small"><button id="previousPage" type="button" class="quiet">←</button><span id="pageLabel" class="muted"></span><button id="nextPage" type="button" class="quiet">→</button></div>
+    </section>
+    <section class="panel small"><h3>Cách đăng ký</h3><p class="muted">Lưu hồ sơ, xác nhận đồng ý rồi bấm bắt đầu. Quay mặt nhẹ theo hướng dẫn; hệ thống tự chọn hai ảnh cho mỗi hướng.</p><p class="muted">Nếu quét bị gián đoạn, hồ sơ vẫn được giữ để tiếp tục đăng ký sau.</p></section>
+  </aside>
+  <div>
+    <div class="steps" aria-label="Quy trình đăng ký"><span class="step active" id="stepProfile"><b>1</b>Hồ sơ</span><span class="step" id="stepFace"><b>2</b>Quét khuôn mặt</span><span class="step" id="stepVerify"><b>3</b>Kiểm tra</span></div>
+    <section class="panel">
+      <div class="row between"><h2 id="profileTitle">Hồ sơ nhân viên mới</h2><span id="profileBadge" class="tag pending">Chưa lưu</span></div>
+      <form id="profileForm">
+        <div class="form-grid">
+          <label class="span2">Họ và tên<input name="full_name" id="fullName" required minlength="2" maxlength="120" autocomplete="name" placeholder="Nguyễn Văn A"></label>
+          <label>Ngày vào làm<input name="hire_date" id="hireDate" type="date" required></label>
+          <label>Chi nhánh<select name="branch_id" id="branchId" required><option value="">Chọn chi nhánh</option></select></label>
+          <label>Chức vụ<select name="role" id="role" required><option value="">Chọn chức vụ</option></select></label>
+          <label>Loại hợp đồng<select name="contract_type" id="contractType" required><option value="FT">FT · Toàn thời gian</option><option value="PT">PT · Bán thời gian</option></select></label>
+          <label>Ca làm chính<select name="primary_shift" id="primaryShift" required><option value="">Chọn ca làm</option></select></label>
+          <label id="salaryLabel">Lương tháng (VND)<input id="salary" type="number" min="1" step="1" required inputmode="numeric" placeholder="Nhập mức lương"></label>
+          <label id="employmentLabel" hidden>Trạng thái làm việc<select id="employmentStatus"><option value="active">Đang làm việc</option><option value="inactive">Ngừng hoạt động</option></select></label>
+        </div>
+        <div class="row form-actions"><button id="saveProfile" type="submit" class="primary">Lưu hồ sơ</button><span id="profileHelp" class="muted small">Hệ thống cấp mã nhân viên khi lưu.</span></div>
+        <div id="profileMessage" class="notice" role="status" hidden></div>
+      </form>
+    </section>
+    <section class="panel" id="facePanel">
+      <div class="row between"><h2>Quét khuôn mặt liên tục</h2><span id="faceBadge" class="tag pending">Chọn hoặc lưu hồ sơ trước</span></div>
+      <div class="capture-grid">
+        <div>
+          <div class="camera"><video id="video" autoplay playsinline muted aria-label="Camera đăng ký khuôn mặt"></video><div id="cameraEmpty" class="camera-empty">Camera sẽ mở khi bạn bắt đầu quét.</div><div id="oval" class="oval"></div><div id="cameraCaption" class="camera-caption" aria-live="polite">Nhìn thẳng và đưa trọn khuôn mặt vào khung</div></div>
+          <div class="row capture-toolbar"><label for="cameraSelect" class="small">Camera</label><select id="cameraSelect" aria-label="Chọn camera"><option value="">Camera mặc định</option></select><span id="captureElapsed" class="muted small"></span></div>
+        </div>
+        <div><div id="poseList" class="pose-list"></div><div class="progress" role="progressbar" aria-label="Tiến độ thu nhận" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" id="progress"><div id="progressBar" style="width:0%"></div></div><div id="captureCount" class="small muted">0 / 10 ảnh</div></div>
+      </div>
+      <label class="consent"><input id="consent" type="checkbox"><span id="consentText">Tôi đồng ý thu nhận và lưu dữ liệu khuôn mặt để đăng ký nhận diện và chấm công.</span></label>
+      <div class="row"><button id="startCapture" type="button" class="primary" disabled>Bắt đầu quét</button><button id="cancelCapture" type="button" class="quiet" disabled>Hủy lượt quét</button><button id="commitCapture" type="button" class="success" disabled>Hoàn tất đăng ký</button></div>
+      <div id="faceMessage" class="notice" role="status" hidden></div>
+      <div id="thumbnails" class="thumbnails" aria-label="Các ảnh đã thu nhận"></div>
+    </section>
+    <section class="panel" id="verifyPanel">
+      <h2>Kiểm tra sau đăng ký</h2><p class="muted small">Nhìn thẳng để kiểm tra bộ khuôn mặt đang sử dụng. Thao tác này không ghi chấm công.</p>
+      <div class="row"><button id="verifyFace" type="button" disabled>Quét thử</button><a href="/kiosk.html">Mở Kiosk chấm công →</a></div><div id="verifyMessage" class="notice" role="status" hidden></div>
+    </section>
+  </div>
+</main>
+<div class="footer">Ảnh chỉ được lưu khi đạt yêu cầu. Tránh ngược sáng, che mặt hoặc quay đầu quá mạnh.</div>
+<div id="authModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="authTitle"><section class="panel auth-card"><h2 id="authTitle">Đăng nhập quản lý nhân sự</h2><p id="authHelp" class="muted small">Sử dụng tài khoản HR hoặc quản lý.</p><form id="authForm"><label>Tên đăng nhập<input id="username" required minlength="3" maxlength="80" pattern="[a-zA-Z0-9_.-]+" autocomplete="username"></label><label>Mật khẩu<input id="password" type="password" required minlength="12" maxlength="128" autocomplete="current-password"></label><button id="authSubmit" class="primary" type="submit">Đăng nhập</button><p id="authError" class="error small" role="alert"></p></form></section></div>
+<p style="text-align:center"><a href="/portal.html">Mở lịch ca, bảng công và bảng lương</a></p>
+<script src="/js/shell.js"></script>
+<script type="module" src="./main-enroll.jsx"></script>
+</body>
+</html>
