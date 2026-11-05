@@ -4,10 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cafe 5TN · Hệ thống Quản trị Nhân sự</title>
+  <script>
+  window.location.replace('/admin.html');
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/theme.css">
 </head>
-<body data-shell="none" class="bg-[#F5F1EB] min-h-screen flex flex-col items-center justify-center p-6 font-sans">
+<body class="bg-[#F5F1EB] min-h-screen flex flex-col items-center justify-center p-6 font-sans">
   <div class="text-center mb-10">
     <div class="w-16 h-16 bg-[#D9962B] text-white rounded-xl mx-auto flex items-center justify-center text-3xl mb-4 shadow-lg">☕</div>
     <h1 class="text-3xl md:text-4xl font-bold text-[#3D2517]">Hệ thống chấm công thông minh</h1>
@@ -18,7 +20,7 @@
     <a href="/admin.html" class="bg-white border-2 border-transparent hover:border-[#D9962B] rounded-2xl p-6 shadow-sm transition group">
       <div class="text-4xl mb-3">📊</div>
       <h2 class="text-xl font-bold text-[#3D2517] group-hover:text-[#D9962B]">1. Tổng quan (Admin)</h2>
-      <p class="text-gray-500 mt-2 text-sm">Dashboard thống kê, tỷ lệ đi trễ, và phê duyệt đổi ca.</p>
+      <p class="text-gray-500 mt-2 text-sm">Số người có mặt và đi trễ hôm nay, cập nhật theo thời gian thực.</p>
     </a>
     
     <a href="/kiosk.html" class="bg-white border-2 border-transparent hover:border-green-500 rounded-2xl p-6 shadow-sm transition group">
@@ -30,16 +32,20 @@
     <a href="/enroll.html" class="bg-white border-2 border-transparent hover:border-indigo-500 rounded-2xl p-6 shadow-sm transition group">
       <div class="text-4xl mb-3">👤</div>
       <h2 class="text-xl font-bold text-[#3D2517] group-hover:text-indigo-600">3. Đăng ký Khuôn mặt</h2>
-      <p class="text-gray-500 mt-2 text-sm">Thu thập dữ liệu FaceID và kiểm tra Anti-spoofing.</p>
+      <p class="text-gray-500 mt-2 text-sm">Tạo hồ sơ nhân viên và thu nhận khuôn mặt nhiều góc.</p>
     </a>
 
     <a href="/portal.html" class="bg-white border-2 border-transparent hover:border-orange-500 rounded-2xl p-6 shadow-sm transition group">
       <div class="text-4xl mb-3">💰</div>
       <h2 class="text-xl font-bold text-[#3D2517] group-hover:text-orange-600">4. Quản lý Lịch & Lương (Portal)</h2>
-      <p class="text-gray-500 mt-2 text-sm">Phân ca (CA_SANG, CA_CHIEU), bảng công và chốt phiếu lương.</p>
+      <p class="text-gray-500 mt-2 text-sm">Phân ca, bảng công, nghỉ phép và chốt phiếu lương.</p>
+    </a>
+
+    <a href="/admin.html#chuyen-can" class="md:col-span-2 bg-white border-2 border-transparent hover:border-[#8A4B12] rounded-2xl p-6 shadow-sm transition group">
+      <div class="text-4xl mb-3">🗓️</div>
+      <h2 class="text-xl font-bold text-[#3D2517] group-hover:text-[#8A4B12]">5. Thống kê chuyên cần</h2>
+      <p class="text-gray-500 mt-2 text-sm">Bản đồ nhiệt đi trễ theo nhân viên và ngày, nhật ký chấm công, xuất Excel.</p>
     </a>
   </div>
-  <script src="/js/shell.js"></script>
-  <script type="module" src="./main-index.jsx"></script>
 </body>
 </html>

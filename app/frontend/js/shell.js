@@ -1,10 +1,10 @@
-/* Khung điều hướng chung. Trang có <body data-shell> sẽ được bọc thanh bên + thanh trên; data-shell="none" thì chỉ dùng theme. */
+/* Khung điều hướng chung. Chỉ trang có <body data-shell="on"> được bọc thanh bên + thanh trên. */
 (function(){
   var b=document.body,mode=b.getAttribute('data-shell');
   var f=document.createElement('link');f.rel='stylesheet';
   f.href='https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap';document.head.appendChild(f);
-  if(mode==='none')return;
-  var NAV=[['Vận hành',[['Tổng quan','/admin.html#overview'],['Chuyên cần','/admin.html#attendance'],['Điểm danh Kiosk','/kiosk.html'],['Đăng ký khuôn mặt','/enroll.html']]],
+  if(mode!=='on')return;
+  var NAV=[['Vận hành',[['Tổng quan','/admin.html'],['Thống kê chuyên cần','/admin.html#chuyen-can'],['Điểm danh Kiosk','/kiosk.html'],['Đăng ký khuôn mặt','/enroll.html']]],
     ['Ca làm và chấm công',[['Lịch làm việc và ca','/portal.html#schedule'],['Bảng chấm công','/portal.html#attendance'],['Phê duyệt nghỉ phép','/portal.html#leave'],['Tính lương','/portal.html#salary']]],
     ['Hệ thống',[['Nhân sự','/portal.html#people'],['Nhật ký thao tác','/portal.html#audit']]]];
   var side=document.createElement('nav');side.className='side';side.setAttribute('aria-label','Điều hướng chính');

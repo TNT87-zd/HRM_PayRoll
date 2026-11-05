@@ -1,7 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  // Số liệu thật từ /api/analytics/summary, tự tải lại khi có lượt chấm công mới (WebSocket)
+  const [sum, setSum] = useState(null);
+  useEffect(() => {
+    const load = () => fetch('/api/analytics/summary').then(r => (r.ok ? r.json() : Promise.reject())).then(setSum).catch(() => setSum(null));
+    load();
+    let ws;
+    try {
+      ws = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/events`);
+      ws.onmessage = e => { try { if (JSON.parse(e.data).event === 'attendance') load(); } catch (_) {} };
+    } catch (_) {}
+    return () => { if (ws) ws.close(); };
+  }, []);
+  const total = sum?.total_employees, present = sum?.present, late = sum?.late;
+  const rate = total ? ((present / total) * 100).toFixed(1) + '%' : '—';
+  const period = new Date().toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' });
+
+  // Hai chế độ xem trong cùng một khung: #tong-quan (mặc định) và #chuyen-can
+  useEffect(() => {
+    const sync = () => setActiveTab(location.hash === '#chuyen-can' ? 'attendance' : 'overview');
+    sync();
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, []);
+  // Phần thống kê chuyên cần (HTML thuần, gọi API thật) nằm trong admin.html; đưa nó vào ô chứa bên dưới
+  useEffect(() => {
+    const slot = document.getElementById('legacy-slot');
+    const src = document.getElementById('legacy-admin-content');
+    if (slot && src && !slot.contains(src)) { slot.appendChild(src); src.style.display = ''; }
+  }, []);
+  useEffect(() => {
+    if (activeTab === 'attendance') window.dispatchEvent(new Event('attendance-view'));
+  }, [activeTab]);
 
   return (
     <div className="flex min-h-screen bg-[#FDFBF7] font-sans text-gray-800">
@@ -26,8 +58,13 @@ const Dashboard = () => {
               <div className="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Vận hành chi nhánh</div>
               <ul className="space-y-1">
                 <li>
-                  <a href="/admin.html" className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#33261D] text-white font-semibold">
+                  <a href="#tong-quan" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${activeTab === 'overview' ? 'bg-[#33261D] text-white font-semibold' : 'hover:bg-[#2A1F17] hover:text-white transition'}`}>
                     <span className="text-base">📊</span> Tổng quan
+                  </a>
+                </li>
+                <li>
+                  <a href="#chuyen-can" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${activeTab === 'attendance' ? 'bg-[#33261D] text-white font-semibold' : 'hover:bg-[#2A1F17] hover:text-white transition'}`}>
+                    <span className="text-base">🗓</span> Thống kê chuyên cần
                   </a>
                 </li>
                 <li>
@@ -76,12 +113,12 @@ const Dashboard = () => {
               <div className="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Hệ thống</div>
               <ul className="space-y-1">
                 <li>
-                  <a href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#2A1F17] hover:text-white transition">
+                  <a href="/portal.html#people" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#2A1F17] hover:text-white transition">
                     <span className="text-base">👥</span> Nhân sự
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#2A1F17] hover:text-white transition">
+                  <a href="/portal.html#audit" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#2A1F17] hover:text-white transition">
                     <span className="text-base">📋</span> Nhật ký hệ thống
                   </a>
                 </li>
@@ -142,6 +179,11 @@ const Dashboard = () => {
             </div>
           </div>
         </header>
+        <div className={activeTab === 'attendance' ? 'hidden' : 'contents'}>
+        <div className="mx-6 mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs text-amber-900">
+          Số có mặt và đi trễ ở đầu trang là dữ liệu thật. Chi phí lương, giờ OT, độ khớp Face ID, biểu đồ và danh sách bên dưới là dữ liệu minh họa theo mockup, chưa nối API.{' '}
+          <a href="#chuyen-can" className="font-bold underline">Xem thống kê chuyên cần chi tiết</a>
+        </div>
 
         {/* DASHBOARD BODY */}
         <div className="p-8 space-y-6">
@@ -155,10 +197,9 @@ const Dashboard = () => {
                 </span>
               </div>
               <p className="text-xs text-gray-500 mt-1 flex items-center gap-4">
-                <span>🟢 <b>142/148</b> Quản lý đang trong ca</span>
-                <span>🔴 <b>4</b> Đúng giờ</span>
-                <span>🟡 <b>2</b> Xin đổi ca chờ duyệt</span>
-                <span className="text-gray-400">Kỳ lương: 01/10 - 31/10/2024</span>
+                <span>🟢 <b>{present ?? '—'}/{total ?? '—'}</b> nhân viên có mặt hôm nay</span>
+                <span>🟡 <b>{late ?? '—'}</b> đi trễ</span>
+                <span className="text-gray-400">Kỳ lương: {period}</span>
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -182,10 +223,10 @@ const Dashboard = () => {
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">TỶ LỆ CÓ MẶT HÔM NAY</span>
                 <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs">👥</span>
               </div>
-              <div className="text-3xl font-extrabold text-gray-900 mt-2">96.8%</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-2">{rate}</div>
               <div className="text-xs text-emerald-600 font-semibold mt-2 flex items-center gap-1">
-                <span>📈 +2.4% vs tuần trước</span>
-                <span className="text-gray-400 font-normal">142/148 Nhân sự</span>
+                <span>Hôm nay</span>
+                <span className="text-gray-400 font-normal">{present ?? '—'}/{total ?? '—'} nhân viên</span>
               </div>
             </div>
 
@@ -570,6 +611,8 @@ const Dashboard = () => {
 
           </div>
         </div>
+        </div>
+        <div id="legacy-slot" className={activeTab === 'attendance' ? 'block' : 'hidden'} />
       </main>
     </div>
   );

@@ -31,51 +31,51 @@ backdrop-filter:blur(6px);border-bottom:1px solid var(--line);position:sticky;to
 .side a.on{border-bottom-color:var(--brand2)}.top,.app-content{padding-left:14px;padding-right:14px}}
 
 /* ===== Portal (CSS riêng của trang) ===== */
-body[data-shell]>header,body[data-shell] .app-content>header{display:none}
-body[data-shell] main{max-width:none;margin:0;padding:0}
-body[data-shell] section{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px;margin:0 0 18px;box-shadow:0 1px 2px rgba(60,35,15,.05)}
-body[data-shell] h2{font-size:18px;margin:0 0 14px;color:var(--ink)}
-body[data-shell] small,body[data-shell] .hint{color:var(--muted)}
-body[data-shell] input,body[data-shell] select,body[data-shell] textarea{background:#fffdf9;border:1px solid #d9c8b0;color:var(--ink);border-radius:8px}
-body[data-shell] input:focus,body[data-shell] select:focus{border-color:var(--brand2)}
-body[data-shell] button{background:var(--brand);color:#fff;border-radius:8px;font-weight:600}
-body[data-shell] button:hover{background:#6f3a0c}
-body[data-shell] button.secondary{background:var(--soft);color:var(--brand)}
-body[data-shell] a{color:var(--brand)}
-body[data-shell] nav:not(.side){gap:6px;margin:0 0 16px}
-body[data-shell] nav:not(.side) a{background:var(--soft);border-radius:99px;padding:7px 14px;text-decoration:none;font-size:13px}
-body[data-shell] th{background:#f6ecdc;color:#5b4636;font-weight:600}
-body[data-shell] td,body[data-shell] th{border-bottom:1px solid var(--line)}
-body[data-shell] tr:hover td{background:#fdf8ef}
-body[data-shell] #notice{background:#e3f3ea;color:#14663a;border-radius:10px;margin-bottom:14px}
-body[data-shell] #notice.error{background:#fbe5e1;color:var(--bad)}
-body[data-shell] .warn{background:#fff4dc;border:1px solid #ecd49a;color:#6b4b0a;border-radius:10px}
-body[data-shell] #login{margin:40px auto}
+body[data-shell="on"]>header,body[data-shell="on"] .app-content>header{display:none}
+body[data-shell="on"] main{max-width:none;margin:0;padding:0}
+body[data-shell="on"] section{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px;margin:0 0 18px;box-shadow:0 1px 2px rgba(60,35,15,.05)}
+body[data-shell="on"] h2{font-size:18px;margin:0 0 14px;color:var(--ink)}
+body[data-shell="on"] small,body[data-shell="on"] .hint{color:var(--muted)}
+body[data-shell="on"] input,body[data-shell="on"] select,body[data-shell="on"] textarea{background:#fffdf9;border:1px solid #d9c8b0;color:var(--ink);border-radius:8px}
+body[data-shell="on"] input:focus,body[data-shell="on"] select:focus{border-color:var(--brand2)}
+body[data-shell="on"] button{background:var(--brand);color:#fff;border-radius:8px;font-weight:600}
+body[data-shell="on"] button:hover{background:#6f3a0c}
+body[data-shell="on"] button.secondary{background:var(--soft);color:var(--brand)}
+body[data-shell="on"] a{color:var(--brand)}
+body[data-shell="on"] nav:not(.side){gap:6px;margin:0 0 16px}
+body[data-shell="on"] nav:not(.side) a{background:var(--soft);border-radius:99px;padding:7px 14px;text-decoration:none;font-size:13px}
+body[data-shell="on"] th{background:#f6ecdc;color:#5b4636;font-weight:600}
+body[data-shell="on"] td,body[data-shell="on"] th{border-bottom:1px solid var(--line)}
+body[data-shell="on"] tr:hover td{background:#fdf8ef}
+body[data-shell="on"] #notice{background:#e3f3ea;color:#14663a;border-radius:10px;margin-bottom:14px}
+body[data-shell="on"] #notice.error{background:#fbe5e1;color:var(--bad)}
+body[data-shell="on"] .warn{background:#fff4dc;border:1px solid #ecd49a;color:#6b4b0a;border-radius:10px}
+body[data-shell="on"] #login{margin:40px auto}
 
 /* ===== Trang Tailwind tối (admin) -> sáng ===== */
-body[data-shell] .bg-slate-900{background:transparent!important}
-body[data-shell] .bg-slate-800{background:var(--card)!important;border:1px solid var(--line);box-shadow:0 1px 2px rgba(60,35,15,.05)}
-body[data-shell] .bg-slate-700,body[data-shell] thead.bg-slate-700{background:#f6ecdc!important;color:var(--ink)!important}
-body[data-shell] select.bg-slate-700,body[data-shell] input.bg-slate-700{background:#fffdf9!important;border:1px solid #d9c8b0}
-body[data-shell] .text-slate-100{color:var(--ink)!important}
-body[data-shell] .text-slate-300,body[data-shell] .text-slate-400,body[data-shell] .text-slate-500{color:var(--muted)!important}
-body[data-shell] .border-slate-700,body[data-shell] .border-slate-600{border-color:var(--line)!important}
-body[data-shell] .text-green-400{color:var(--ok)!important}body[data-shell] .text-yellow-400,body[data-shell] .text-yellow-300{color:var(--warn)!important}
-body[data-shell] .text-red-400{color:var(--bad)!important}
-body[data-shell] .bg-sky-500,body[data-shell] .bg-emerald-500{background:var(--brand)!important;color:#fff!important}
-body[data-shell] .tab-btn{color:var(--muted);border-radius:99px}
-body[data-shell] .tab-btn.active{background:var(--brand)!important;color:#fff!important}
-body[data-shell] .hm td.n{background:var(--card)!important;color:var(--ink)}
+body[data-shell="on"] .bg-slate-900{background:transparent!important}
+body[data-shell="on"] .bg-slate-800{background:var(--card)!important;border:1px solid var(--line);box-shadow:0 1px 2px rgba(60,35,15,.05)}
+body[data-shell="on"] .bg-slate-700,body[data-shell="on"] thead.bg-slate-700{background:#f6ecdc!important;color:var(--ink)!important}
+body[data-shell="on"] select.bg-slate-700,body[data-shell="on"] input.bg-slate-700{background:#fffdf9!important;border:1px solid #d9c8b0}
+body[data-shell="on"] .text-slate-100{color:var(--ink)!important}
+body[data-shell="on"] .text-slate-300,body[data-shell="on"] .text-slate-400,body[data-shell="on"] .text-slate-500{color:var(--muted)!important}
+body[data-shell="on"] .border-slate-700,body[data-shell="on"] .border-slate-600{border-color:var(--line)!important}
+body[data-shell="on"] .text-green-400{color:var(--ok)!important}body[data-shell="on"] .text-yellow-400,body[data-shell="on"] .text-yellow-300{color:var(--warn)!important}
+body[data-shell="on"] .text-red-400{color:var(--bad)!important}
+body[data-shell="on"] .bg-sky-500,body[data-shell="on"] .bg-emerald-500{background:var(--brand)!important;color:#fff!important}
+body[data-shell="on"] .tab-btn{color:var(--muted);border-radius:99px}
+body[data-shell="on"] .tab-btn.active{background:var(--brand)!important;color:#fff!important}
+body[data-shell="on"] .hm td.n{background:var(--card)!important;color:var(--ink)}
 
 /* ===== Đăng ký khuôn mặt (enroll.css riêng) ===== */
-body[data-shell] .topbar{background:transparent;border:0;padding:0 0 12px}
-body[data-shell] .topbar .brand,body[data-shell] .topbar nav a{display:none}
-body[data-shell] .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);color:var(--ink)}
-body[data-shell] .primary{background:var(--brand)!important;color:#fff!important}
-body[data-shell] .success{background:var(--ok)!important;color:#fff!important}
-body[data-shell] .quiet{background:var(--soft)!important;color:var(--brand)!important}
-body[data-shell] .step.active{background:var(--side)!important;color:#fff!important}
-body[data-shell] .muted{color:var(--muted)!important}
+body[data-shell="on"] .topbar{background:transparent;border:0;padding:0 0 12px}
+body[data-shell="on"] .topbar .brand,body[data-shell="on"] .topbar nav a{display:none}
+body[data-shell="on"] .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);color:var(--ink)}
+body[data-shell="on"] .primary{background:var(--brand)!important;color:#fff!important}
+body[data-shell="on"] .success{background:var(--ok)!important;color:#fff!important}
+body[data-shell="on"] .quiet{background:var(--soft)!important;color:var(--brand)!important}
+body[data-shell="on"] .step.active{background:var(--side)!important;color:#fff!important}
+body[data-shell="on"] .muted{color:var(--muted)!important}
 
 /* ===== Kiosk & trang chủ: màn hình thiết bị, tông nâu đậm ===== */
 body[data-shell="none"]{background:#1f130d!important;color:#fbf3e6!important;font-family:var(--font)}

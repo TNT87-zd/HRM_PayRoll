@@ -83,6 +83,6 @@ $('loadUnassigned').onclick=act(async()=>table('unassignedTable',await api('/api
 $('assignForm').onsubmit=act(async e=>{const d=formData(e.target);await api('/api/hrm/events/'+encodeURIComponent(d.attendance_id)+'/assign','POST',{shift_id:d.shift_id,reason:d.reason});table('unassignedTable',await api('/api/hrm/events/unassigned'));await refreshAttendance();notice('Đã gắn ca cho lượt chấm công cũ');});
 </script>
 <script src="/js/shell.js"></script>
-<script type="module" src="./main-portal.jsx"></script>
+<script type="module" src="./jsx/main-portal.jsx"></script>
 </body>
 </html>
