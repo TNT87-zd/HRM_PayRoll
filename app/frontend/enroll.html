@@ -1,13 +1,14 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <link rel="stylesheet" href="/css/theme.css">
+  
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Đăng ký nhân viên · HRM</title>
   <link rel="stylesheet" href="/css/enroll.css">
   <script type="module" src="/js/enroll.mjs"></script>
+<link rel="stylesheet" href="/css/cafe-integrated.css?v=20261106">
 </head>
-<body data-shell="none">
+<body class="cafe-app cafe-enroll" data-shell="none"><aside class="cafe-sidebar" aria-label="Điều hướng chính"><a class="cafe-brand" href="/admin.html"><span>☕</span><strong>CÀ PHÊ 5TN<small>NHÂN SỰ & TIỀN LƯƠNG</small></strong></a><p class="cafe-nav-label">VẬN HÀNH CỬA HÀNG</p><nav><a href="/admin.html" data-cafe-link><span aria-hidden="true">▦</span>Tổng quan</a><a href="/kiosk.html" data-cafe-link><span aria-hidden="true">◎</span>Điểm danh Kiosk</a><a href="/enroll.html" data-cafe-link><span aria-hidden="true">♙</span>Đăng ký khuôn mặt</a><a href="/portal.html#schedule" data-cafe-link><span aria-hidden="true">▤</span>Lịch làm việc & ca</a><a href="/portal.html#attendance" data-cafe-link><span aria-hidden="true">◷</span>Bảng chấm công</a><a href="/portal.html#leave" data-cafe-link><span aria-hidden="true">✓</span>Đơn nghỉ phép</a><a href="/portal.html#salary" data-cafe-link><span aria-hidden="true">₫</span>Tính lương</a><a href="/portal.html#people" data-cafe-link><span aria-hidden="true">♧</span>Nhân sự</a><a href="/portal.html#audit" data-cafe-link><span aria-hidden="true">≡</span>Nhật ký thao tác</a></nav><div class="cafe-sidebar-foot">Cafe 5TN · HRM & Payroll</div></aside><div class="cafe-workspace">
 <header class="topbar">
   <div class="brand"><div class="brand-icon" aria-hidden="true">◎</div><div><h1>Đăng ký nhân viên</h1><div class="muted small">Tạo hồ sơ và đăng ký khuôn mặt trong một luồng</div></div></div>
   <nav><a href="/">Trang chủ</a><a href="/kiosk.html">Kiosk</a><a href="/admin.html">Quản trị</a><span id="account" class="muted small"></span><button id="logout" class="quiet" hidden>Đăng xuất</button></nav>
@@ -65,7 +66,8 @@
 <div class="footer">Ảnh chỉ được lưu khi đạt yêu cầu. Tránh ngược sáng, che mặt hoặc quay đầu quá mạnh.</div>
 <div id="authModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="authTitle"><section class="panel auth-card"><h2 id="authTitle">Đăng nhập quản lý nhân sự</h2><p id="authHelp" class="muted small">Sử dụng tài khoản HR hoặc quản lý.</p><form id="authForm"><label>Tên đăng nhập<input id="username" required minlength="3" maxlength="80" pattern="[a-zA-Z0-9_.-]+" autocomplete="username"></label><label>Mật khẩu<input id="password" type="password" required minlength="12" maxlength="128" autocomplete="current-password"></label><button id="authSubmit" class="primary" type="submit">Đăng nhập</button><p id="authError" class="error small" role="alert"></p></form></section></div>
 <p style="text-align:center"><a href="/portal.html">Mở lịch ca, bảng công và bảng lương</a></p>
-<script src="/js/shell.js"></script>
-<script type="module" src="./jsx/main-enroll.jsx"></script>
+
+
+</div><script src="/js/cafe-integrated.js?v=20261106"></script>
 </body>
 </html>

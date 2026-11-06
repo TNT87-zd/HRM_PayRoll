@@ -1,6 +1,7 @@
 import importlib.util
 import logging
 from contextlib import asynccontextmanager
+import mimetypes
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -17,7 +18,10 @@ from hrm.api import router as workflow_router
 from hrm.auth import router as workflow_auth_router
 
 logger = logging.getLogger("uvicorn.error")
-
+mimetypes.init()
+mimetypes.add_type("application/javascript", ".js")
+mimetypes.add_type("application/javascript", ".mjs")
+mimetypes.add_type("text/css", ".css")
 
 def create_app(settings=None, face_engine=None, pose_estimator=None):
     settings = settings or Settings()

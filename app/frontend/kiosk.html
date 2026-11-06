@@ -4,16 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kiosk chấm công - Cafe 5TN</title>
-  <link rel="stylesheet" href="/css/theme.css">
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @keyframes scan { 0% {top: 0} 50% {top: 100%} 100% {top: 0} }
     .laser { position: absolute; left: 0; right: 0; height: 3px; background: #38bdf8;
              box-shadow: 0 0 14px #38bdf8; animation: scan 2.5s linear infinite; pointer-events: none; }
   </style>
+<link rel="stylesheet" href="/css/cafe-integrated.css?v=20261106">
 </head>
-<body data-shell="none" class="bg-slate-900 text-slate-100 min-h-screen p-6">
-  <div class="flex justify-between items-center mb-4">
+<body class="cafe-app cafe-kiosk" data-shell="none"><aside class="cafe-sidebar" aria-label="Điều hướng chính"><a class="cafe-brand" href="/admin.html"><span>☕</span><strong>CÀ PHÊ 5TN<small>NHÂN SỰ & TIỀN LƯƠNG</small></strong></a><p class="cafe-nav-label">VẬN HÀNH CỬA HÀNG</p><nav><a href="/admin.html" data-cafe-link><span aria-hidden="true">▦</span>Tổng quan</a><a href="/kiosk.html" data-cafe-link><span aria-hidden="true">◎</span>Điểm danh Kiosk</a><a href="/enroll.html" data-cafe-link><span aria-hidden="true">♙</span>Đăng ký khuôn mặt</a><a href="/portal.html#schedule" data-cafe-link><span aria-hidden="true">▤</span>Lịch làm việc & ca</a><a href="/portal.html#attendance" data-cafe-link><span aria-hidden="true">◷</span>Bảng chấm công</a><a href="/portal.html#leave" data-cafe-link><span aria-hidden="true">✓</span>Đơn nghỉ phép</a><a href="/portal.html#salary" data-cafe-link><span aria-hidden="true">₫</span>Tính lương</a><a href="/portal.html#people" data-cafe-link><span aria-hidden="true">♧</span>Nhân sự</a><a href="/portal.html#audit" data-cafe-link><span aria-hidden="true">≡</span>Nhật ký thao tác</a></nav><div class="cafe-sidebar-foot">Cafe 5TN · HRM & Payroll</div></aside><div class="cafe-workspace">
+  <div class="cafe-page-heading flex justify-between items-center mb-4">
     <div>
       <h1 class="text-2xl font-bold">Cafe 5TN · Chấm công khuôn mặt</h1>
       <div class="flex items-center gap-2 mt-0.5">
@@ -315,7 +316,8 @@ fetch('/api/health').then(response => response.json()).then(health => {
 }).catch(() => {});
 setMode('IN');
 </script>
-<script src="/js/shell.js"></script>
-<script type="module" src="./jsx/main-kiosk.jsx"></script>
+
+
+</div><script src="/js/cafe-integrated.js?v=20261106"></script>
 </body>
 </html>
