@@ -1,85 +1,25 @@
 <!DOCTYPE html>
+
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kiosk chấm công - Cafe 5TN</title>
-  
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Kiosk chấm công - Cafe 5TN</title>
+
+<style>
     @keyframes scan { 0% {top: 0} 50% {top: 100%} 100% {top: 0} }
     .laser { position: absolute; left: 0; right: 0; height: 3px; background: #38bdf8;
              box-shadow: 0 0 14px #38bdf8; animation: scan 2.5s linear infinite; pointer-events: none; }
   </style>
-<link rel="stylesheet" href="/css/cafe-integrated.css?v=20261106">
-</head>
-<body class="cafe-app cafe-kiosk" data-shell="none"><aside class="cafe-sidebar" aria-label="Điều hướng chính"><a class="cafe-brand" href="/admin.html"><span>☕</span><strong>CÀ PHÊ 5TN<small>NHÂN SỰ & TIỀN LƯƠNG</small></strong></a><p class="cafe-nav-label">VẬN HÀNH CỬA HÀNG</p><nav><a href="/admin.html" data-cafe-link><span aria-hidden="true">▦</span>Tổng quan</a><a href="/kiosk.html" data-cafe-link><span aria-hidden="true">◎</span>Điểm danh Kiosk</a><a href="/enroll.html" data-cafe-link><span aria-hidden="true">♙</span>Đăng ký khuôn mặt</a><a href="/portal.html#schedule" data-cafe-link><span aria-hidden="true">▤</span>Lịch làm việc & ca</a><a href="/portal.html#attendance" data-cafe-link><span aria-hidden="true">◷</span>Bảng chấm công</a><a href="/portal.html#leave" data-cafe-link><span aria-hidden="true">✓</span>Đơn nghỉ phép</a><a href="/portal.html#salary" data-cafe-link><span aria-hidden="true">₫</span>Tính lương</a><a href="/portal.html#people" data-cafe-link><span aria-hidden="true">♧</span>Nhân sự</a><a href="/portal.html#audit" data-cafe-link><span aria-hidden="true">≡</span>Nhật ký thao tác</a></nav><div class="cafe-sidebar-foot">Cafe 5TN · HRM & Payroll</div></aside><div class="cafe-workspace">
-  <div class="cafe-page-heading flex justify-between items-center mb-4">
-    <div>
-      <h1 class="text-2xl font-bold">Cafe 5TN · Chấm công khuôn mặt</h1>
-      <div class="flex items-center gap-2 mt-0.5">
-        <span id="device" class="text-slate-400"></span>
-        <span class="text-slate-600">·</span>
-        <a href="/enroll.html" class="text-xs text-indigo-400 hover:underline">Đăng ký FaceID</a>
-        <span class="text-slate-600">·</span>
-        <a href="/portal.html" class="text-xs text-indigo-400">Portal / Đăng nhập</a>
-        <a href="/admin.html" class="text-xs text-slate-400 hover:underline">Admin</a>
-      </div>
-    </div>
-    <div class="text-right">
-      <p id="clock" class="text-4xl font-bold tabular-nums">--:--:--</p>
-      <p id="today" class="text-slate-400"></p>
-    </div>
-  </div>
-
-  <!-- Nút chọn chế độ Check-in / Check-out -->
-  <div class="flex gap-4 mb-4">
-    <button id="btnIn" onclick="setMode('IN')" class="flex-1 py-3 text-lg font-bold rounded-xl transition bg-green-600 text-white ring-4 ring-green-400">
-      👋 Chấm công VÀO (Check-in)
-    </button>
-    <button id="btnOut" onclick="setMode('OUT')" class="flex-1 py-3 text-lg font-bold rounded-xl transition bg-slate-700 text-slate-300 hover:bg-slate-600">
-      🏃 Chấm công RA (Check-out)
-    </button>
-  </div>
-
-  <div class="grid lg:grid-cols-3 gap-4">
-    <!-- Camera Section -->
-    <div class="lg:col-span-2 bg-slate-800 rounded-xl p-3">
-      <div class="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
-        <video id="cam" autoplay muted playsinline class="absolute inset-0 w-full h-full object-contain"></video>
-        <canvas id="overlay" class="absolute inset-0 w-full h-full"></canvas>
-        <div class="laser"></div>
-      </div>
-    </div>
-
-    <!-- Panel Section -->
-    <div class="flex flex-col gap-4">
-      <!-- Thẻ thông báo kết quả -->
-      <div id="card" class="bg-slate-800 rounded-xl p-5 border-4 border-slate-600">
-        <p id="title" class="text-3xl font-bold">Đang chờ quét VÀO…</p>
-        <p id="sub" class="text-slate-300 mt-1">Nhìn thẳng vào camera</p>
-        <p id="time" class="text-slate-400 mt-1"></p>
-
-        <p class="text-sm text-slate-400 mt-4 mb-1">Độ giống khuôn mặt <span id="simTxt" class="font-bold text-slate-100"></span></p>
-        <div class="relative h-4 bg-slate-700 rounded-full overflow-hidden">
-          <div id="simBar" class="h-full rounded-full" style="width:0%"></div>
-          <div class="absolute top-0 bottom-0 w-0.5 bg-white" style="left:55%"></div>
-        </div>
-        <p class="text-xs text-slate-500 mt-1">Điểm tương đồng để đối chiếu, không phải xác suất nhận diện đúng.</p>
-      </div>
-
-      <!-- Lịch sử quét -->
-      <div class="bg-slate-800 rounded-xl p-5">
-        <div class="flex justify-between items-center mb-2">
-          <h2 class="font-bold">5 lượt quét gần nhất</h2>
-          <button id="btnSound" class="text-sm bg-slate-700 hover:bg-slate-600 rounded px-3 py-1">Âm thanh: Tắt</button>
-        </div>
-        <ul id="history" class="space-y-2 text-sm"></ul>
-      </div>
-    </div>
-  </div>
-
-<script>
+<link href="/css/cafe-integrated.css?v=20261106" rel="stylesheet"/>
+<link href="/css/capture-studio.css?v=20261107-1" rel="stylesheet"/><script defer="True" src="/js/capture-studio.js?v=20261107-1"></script></head>
+<body class="cafe-app cafe-kiosk" data-shell="none"><aside aria-label="Điều hướng chính" class="cafe-sidebar"><a class="cafe-brand" href="/admin.html"><span>☕</span><strong>CÀ PHÊ 5TN<small>NHÂN SỰ &amp; TIỀN LƯƠNG</small></strong></a><p class="cafe-nav-label">VẬN HÀNH CỬA HÀNG</p><nav><a data-cafe-link="" href="/admin.html"><span aria-hidden="true">▦</span>Tổng quan</a><a aria-current="page" data-cafe-link="" href="/kiosk.html"><span aria-hidden="true">◎</span>Điểm danh Kiosk</a><a data-cafe-link="" href="/enroll.html"><span aria-hidden="true">♙</span>Đăng ký khuôn mặt</a><a data-cafe-link="" href="/portal.html#schedule"><span aria-hidden="true">▤</span>Lịch làm việc &amp; ca</a><a data-cafe-link="" href="/portal.html#attendance"><span aria-hidden="true">◷</span>Bảng chấm công</a><a data-cafe-link="" href="/portal.html#leave"><span aria-hidden="true">✓</span>Đơn nghỉ phép</a><a data-cafe-link="" href="/portal.html#salary"><span aria-hidden="true">₫</span>Tính lương</a><a data-cafe-link="" href="/portal.html#people"><span aria-hidden="true">♧</span>Nhân sự</a><a data-cafe-link="" href="/portal.html#audit"><span aria-hidden="true">≡</span>Nhật ký thao tác</a></nav><div class="cafe-sidebar-foot">Cafe 5TN · HRM &amp; Payroll</div></aside><div class="cafe-workspace"><div class="studio-top"><span>VẬN HÀNH CỬA HÀNG <b> / CÀ PHÊ 5TN</b></span><div><a href="/portal.html">Lịch ca &amp; bảng công</a><a href="/admin.html">Tổng quan ↗</a></div></div><header class="studio-heading"><div><p class="studio-eyebrow">ĐIỂM DANH TẠI CỬA HÀNG</p><h1>Kiosk chấm công khuôn mặt</h1><p><span id="device"></span> <span class="studio-dot">•</span> Vào ca / Ra ca</p></div><div class="studio-clock"><strong id="clock">--:--:--</strong><span id="today"></span></div></header>
+<div class="kiosk-layout"><div class="kiosk-main"><section class="studio-card camera-card"><div class="studio-row"><h2>◎ Camera nhận diện</h2><span class="studio-chip" id="cameraState">Chờ camera</span></div><p class="studio-muted">Một người trong khung hình · Nhìn thẳng và giữ yên</p><div class="studio-viewfinder"><video autoplay="" id="cam" muted="" playsinline=""></video><canvas id="overlay"></canvas><div class="laser"></div><div id="cameraPlaceholder">Cho phép truy cập camera để bắt đầu chấm công</div><div aria-hidden="true" class="camera-corners"></div><div class="camera-caption-static">Đưa trọn khuôn mặt vào khung hình</div></div>
+<div aria-live="polite" id="card" role="status"><div aria-hidden="true" class="result-mark">◎</div><div class="result-body"><p class="studio-eyebrow">KẾT QUẢ LƯỢT QUÉT</p><h2 id="title">Đang chờ quét VÀO…</h2><p id="sub">Nhìn thẳng vào camera</p><p id="time"></p><div class="studio-row"><span>Điểm tương đồng</span><strong id="simTxt"></strong></div><div class="similarity-track"><div id="simBar" style="width:0%"></div><div class="threshold" style="left:55%"></div></div><small>Điểm đối chiếu khuôn mặt, không phải xác suất nhận diện đúng.</small></div></div></section>
+<div class="kiosk-actions"><button id="btnIn" onclick="setMode('IN')"><span>↪</span><strong>Vào ca</strong><small>Bắt đầu làm việc</small></button><button id="btnOut" onclick="setMode('OUT')"><span>↗</span><strong>Ra ca</strong><small>Hoàn thành ca làm</small></button><a href="/portal.html#schedule"><span>▦</span><strong>Lịch làm việc</strong><small>Xem ca đã đăng ký</small></a><a href="/portal.html#attendance"><span>◷</span><strong>Bảng chấm công</strong><small>Đối chiếu lượt vào / ra</small></a></div></div>
+<aside class="kiosk-rail"><section class="studio-card"><p class="studio-eyebrow">TRẠNG THÁI THIẾT BỊ</p><h2>Sẵn sàng cho ca làm</h2><div class="device-line"><span>Camera</span><b id="cameraDetail">Đang kết nối…</b></div><div class="device-line"><span>Vị trí</span><b id="gpsState">Đang lấy vị trí…</b></div><div class="device-line"><span>Nhận diện</span><b id="modelState">Đang kiểm tra…</b></div><p class="studio-muted">Cần đúng thiết bị, vị trí chi nhánh và lịch ca hợp lệ.</p></section>
+<section class="studio-card history-card"><div class="studio-row"><h2>Nhật ký điểm danh</h2><span class="studio-chip">Phiên hiện tại</span></div><p class="studio-muted">5 kết quả quét gần nhất trên màn hình này.</p><ul id="history"></ul><p class="studio-empty" id="historyEmpty">Chưa có lượt quét.<br/>Kết quả sẽ xuất hiện tại đây.</p><button id="btnSound" type="button">Âm thanh: Tắt</button></section>
+<section class="studio-tip"><span>☀</span><div><h3>Mẹo chấm công nhanh</h3><p>Đứng ở nơi đủ sáng, bỏ vật che mặt và nhìn thẳng. Chọn Vào ca hoặc Ra ca trước khi quét.</p><a href="/enroll.html">Đăng ký hoặc kiểm tra FaceID →</a></div></section></aside></div><script>
 // ===== Cấu hình =====
 const API = '/api/kiosk/recognize';
 const DEVICE_ID = 'CN01-TB01';
@@ -118,6 +58,8 @@ const NO_HISTORY = new Set(['verifying', 'duplicate', 'low_quality', 'multiple_f
 
 function setMode(mode) {
   scanMode = mode;
+  document.getElementById('btnIn').setAttribute('aria-pressed', String(mode === 'IN'));
+  document.getElementById('btnOut').setAttribute('aria-pressed', String(mode === 'OUT'));
   const isIN = mode === 'IN';
   const btnIn = $('btnIn'), btnOut = $('btnOut');
   if (btnIn && btnOut) {
@@ -315,9 +257,6 @@ fetch('/api/health').then(response => response.json()).then(health => {
   if (marker && health.threshold) marker.style.left = `${health.threshold * 100}%`;
 }).catch(() => {});
 setMode('IN');
-</script>
-
-
-</div><script src="/js/cafe-integrated.js?v=20261106"></script>
+</script></div><script src="/js/cafe-integrated.js?v=20261106"></script>
 </body>
 </html>
