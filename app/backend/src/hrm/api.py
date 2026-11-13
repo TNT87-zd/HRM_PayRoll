@@ -12,7 +12,7 @@ from models import WorkflowAudit
 from hrm.store import settings
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, ConfigDict
-from hrm import core
+from hrm import core, payroll_reports as reports
 from hrm.auth import hr, user
 from hrm.store import db, records, get, put, audit, ROOT
 
@@ -37,7 +37,7 @@ class Shift(Model):
     start: datetime
     end: datetime
     break_minutes: int = Field(default=0,ge=0,le=240)
-    approved_ot_minutes: int = Field(default=0,ge=0,le=240)
+    approved_ot_minutes: int = Field(default=0,ge=0,le=90)
     ot_multiplier: float = Field(default=1.5,ge=1,le=5)
 
 class ManualEvent(Model):
@@ -114,6 +114,8 @@ def save_shift(body: Shift,u=Depends(hr)):
     s=body.model_dump(mode='json')
     start,end=core.dt(s['start']),core.dt(s['end'])
     s['start'],s['end']=start.isoformat(),end.isoformat()
+    if start.date()!=end.date() or (start.strftime('%H:%M:%S'),end.strftime('%H:%M:%S')) not in core.SHIFT_WINDOWS:
+        raise HTTPException(422,'Chọn ca A 07–15, B 15–23, 1 07–12, 2 12–18 hoặc 3 18–23 trong cùng ngày')
     hours=(end-start).total_seconds()/3600
     if not 0<hours<=16 or body.break_minutes>=hours*60:
         raise HTTPException(422,'Ca phải dài 0–16 giờ, giờ nghỉ nhỏ hơn độ dài ca')
@@ -260,7 +262,10 @@ def attendance(month: str,u=Depends(user)):
     month_check(month)
     with db() as con:
         data=inputs(con,month)
-        return scope(u,core.timesheet(data['shifts'],data['events'],data['leaves']))
+        try:
+            return scope(u,core.timesheet(data['shifts'],data['events'],data['leaves']))
+        except ValueError as ex:
+            raise HTTPException(422,str(ex))
 
 @router.post('/payroll/{month}/calculate')
 def calculate(month: str,body: Run,u=Depends(hr)):
@@ -268,19 +273,29 @@ def calculate(month: str,body: Run,u=Depends(hr)):
     with db(True) as con:
         unlocked(con,month)
         data=inputs(con,month)
-        rows=core.timesheet(data['shifts'],data['events'],data['leaves'])
+        try:
+            rows=core.timesheet(data['shifts'],data['events'],data['leaves'])
+        except ValueError as ex:
+            raise HTTPException(422,str(ex))
         if not rows:
             raise HTTPException(422,'Chưa có lịch ca trong kỳ')
         if set(body.adjustments)-{e['employee_id'] for e in data['employees']}:
             raise HTTPException(422,'Mã nhân viên điều chỉnh không tồn tại')
         params=body.model_dump()
         try:
+            params.update(reports.configuration(con,month))
             pays=core.payroll(data['employees'],rows,params,params['adjustments'])
         except ValueError as ex:
             raise HTTPException(422,str(ex))
-        result=dict(month=month,status='draft',policy='DEMO_CONFIGURABLE_V1',parameters=params,
+        result=dict(month=month,status='draft',policy=params['payroll_2026_policy']['version'],parameters=params,
+                    run_id=uuid.uuid4().hex,source=params.get('source','WORKFLOW'),
                     input_hash=fingerprint({"data":data,"parameters":params}),attendance=rows,rows=pays,
                     calculated_at=datetime.now(core.VN).isoformat(),calculated_by=u['username'])
+        try:
+            reports.archive(result)
+        except OSError as ex:
+            raise HTTPException(503,'Không lưu được báo cáo; kiểm tra dung lượng/quyền ghi thư mục data/reports') from ex
+        put(con,'payroll_runs',result['run_id'],result)
         put(con,'payroll',month,result)
         audit(con,u['username'],'payroll_calculate',{'month':month,'input_hash':result['input_hash']})
     return result
@@ -293,13 +308,28 @@ def finalize(month: str,body: Close,u=Depends(hr)):
         p=get(con,'payroll',month)
         if not p:
             raise HTTPException(404,'Chưa tính bảng lương')
+        try:
+            current_params={**p['parameters'],**reports.configuration(con,month)}
+        except ValueError as ex:
+            raise HTTPException(422,str(ex))
+        if current_params!=p['parameters']:
+            raise HTTPException(409,'Cấu hình hợp đồng/chính sách đã đổi; hãy tính lại')
         if p['input_hash']!=body.input_hash or p['input_hash']!=fingerprint({'data':inputs(con,month),'parameters':p['parameters']}):
             raise HTTPException(409,'Dữ liệu đã thay đổi; cần tính và kiểm tra lại')
         if any(r['status']=='incomplete' or 'leave_and_work_conflict' in r['flags'] for r in p['attendance']):
             raise HTTPException(409,'Còn thiếu giờ vào/ra hoặc nghỉ phép trùng ngày làm')
         if any(core.dt(s['end'])>datetime.now(core.VN) for s in inputs(con,month)['shifts']):
             raise HTTPException(409,'Ca làm việc chưa kết thúc')
+        if any(r.get('check_out') and core.dt(r['check_out'])>datetime.now(core.VN) for r in p['attendance']):
+            raise HTTPException(409,'Có giờ ra nằm trong tương lai; kiểm tra lại dữ liệu')
         p.update(status='finalized',finalized_by=u['username'],finalized_at=datetime.now(core.VN).isoformat())
+        if not p.get('run_id'):
+            raise HTTPException(409,'Bảng lương cũ chưa có mã lần tính; hãy tính lại trước khi chốt')
+        try:
+            reports.archive(p)
+        except OSError as ex:
+            raise HTTPException(503,'Không lưu được báo cáo chốt lương') from ex
+        put(con,'payroll_runs',p['run_id'],p)
         put(con,'payroll',month,p)
         audit(con,u['username'],'payroll_finalize',{'month':month,'input_hash':p['input_hash']})
     return p
@@ -315,25 +345,42 @@ def view_payroll(month: str,u=Depends(user)):
             return {'month':month,'status':p['status'],'policy':p['policy'],'rows':scope(u,p['rows'])}
         return p
 
+def download(content, filename, media):
+    return StreamingResponse(io.BytesIO(content),media_type=media,
+                             headers={'Content-Disposition':f'attachment; filename="{filename}"'})
+
 @router.get('/payroll/{month}/export')
 def export(month: str,u=Depends(user)):
     p=view_payroll(month,u)
-    from openpyxl import Workbook
-    wb=Workbook()
-    ws=wb.active
-    ws.title='Payroll DEMO'
-    if p['rows']:
-        ws.append(list(p['rows'][0]))
-        for row in p['rows']:
-            ws.append([("'"+v if isinstance(v,str) and v.startswith(('=','+','-','@')) else v) for v in row.values()])
-    ws.freeze_panes='A2'
-    for col in ws.columns:
-        ws.column_dimensions[col[0].column_letter].width=23
-    stream=io.BytesIO()
-    wb.save(stream)
-    stream.seek(0)
-    return StreamingResponse(stream,media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                             headers={'Content-Disposition':f'attachment; filename="payroll_{month}.xlsx"'})
+    return download(reports.workbook_bytes(p),f'payroll_{month}.xlsx',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+@router.get('/attendance/export')
+def export_attendance(month: str,u=Depends(user)):
+    return download(reports.csv_bytes(attendance(month,u)),f'attendance_{month}.csv','text/csv; charset=utf-8')
+
+@router.get('/payroll/{month}/json')
+def export_json(month: str,u=Depends(hr)):
+    p=view_payroll(month,u)
+    return download(json.dumps(p,ensure_ascii=False,indent=2).encode('utf-8'),f'payroll_{month}.json','application/json')
+
+@router.get('/payroll/{month}/history')
+def history(month: str,u=Depends(hr)):
+    month_check(month)
+    with db() as con:
+        return [dict(run_id=p['run_id'],status=p['status'],calculated_at=p['calculated_at'],
+                     total_net=sum(r['net'] for r in p['rows']))
+                for p in records(con,'payroll_runs') if p['month']==month]
+
+@router.get('/payroll/{month}/history/{run_id}/export')
+def export_history(month: str,run_id: str,u=Depends(hr)):
+    month_check(month)
+    with db() as con:
+        p=get(con,'payroll_runs',run_id)
+        if not p or p['month']!=month:
+            raise HTTPException(404,'Không tìm thấy lần tính')
+    return download(reports.workbook_bytes(p),f'payroll_{month}_{p["run_id"]}.xlsx',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 @router.get('/audit')
 def audit_log(u=Depends(hr)):

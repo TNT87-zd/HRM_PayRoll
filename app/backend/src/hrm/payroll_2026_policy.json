@@ -1,0 +1,55 @@
+{
+  "version": "CAFE_2026_V2",
+  "supported_from": "2026-07",
+  "supported_until": "2026-12",
+  "new_pit_from": "2026-01",
+  "standard_days": 26,
+  "hours_per_day": 8,
+  "region": 2,
+  "region_min_month": 4730000,
+  "region_min_hour": 22700,
+  "reference_salary": 2530000,
+  "pt_ins_min_pay": 2530000,
+  "personal_deduction": 15500000,
+  "dependent_deduction": 6200000,
+  "tax_brackets": [
+    [
+      10000000,
+      0.05
+    ],
+    [
+      30000000,
+      0.1
+    ],
+    [
+      60000000,
+      0.2
+    ],
+    [
+      100000000,
+      0.3
+    ],
+    [
+      null,
+      0.35
+    ]
+  ],
+  "short_contract_threshold": 5000000,
+  "short_contract_rate": 0.1,
+  "meal_exempt_limit": 1200000,
+  "employee_rates": {
+    "bhxh": 0.08,
+    "bhyt": 0.015,
+    "bhtn": 0.01
+  },
+  "employer_rates": {
+    "bhxh": 0.175,
+    "bhyt": 0.03,
+    "bhtn": 0.01
+  },
+  "holiday_dates": [],
+  "weekly_rest_days": {},
+  "meal_per_day": 30000,
+  "attendance_bonus": 300000,
+  "notice": "Kỳ demo 07-12/2026; người lao động Việt Nam cư trú, một hợp đồng, không hưởng lương hưu. PT xét theo mức tham chiếu; ngày lễ/nghỉ tuần phải cấu hình theo lịch thực tế."
+}
