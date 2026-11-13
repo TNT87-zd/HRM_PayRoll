@@ -9,6 +9,8 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from models import AttendanceRecord, Employee
+from hrm.data_snapshot import daily_rows
+from hrm import store as workflow_store
 
 repository_factory = ContextVar("analytics_repository_factory", default=None)
 
@@ -40,6 +42,9 @@ STATUS_VN = {
     "leave": "Nghỉ phép",
     "on_leave": "Nghỉ phép",
     "holiday": "Nghỉ lễ",
+    "paid_leave": "Nghỉ hưởng lương",
+    "unpaid_leave": "Nghỉ không lương",
+    "incomplete": "Thiếu lượt vào/ra",
 }
 
 ROLE_VN = {
@@ -63,19 +68,27 @@ def _get_mtime(path: Path) -> float:
 
 
 def _load_daily() -> pd.DataFrame:
-    p = DATA / "attendance_daily.csv"
-    mtime = _get_mtime(p)
-    if "daily" in _CACHE and _CACHE["daily"]["mtime"] == mtime:
-        return _CACHE["daily"]["data"].copy()
-    if not p.is_file():
-        return pd.DataFrame()
-    df = pd.read_csv(p, parse_dates=["work_date"])
-    _CACHE["daily"] = {"mtime": mtime, "data": df}
-    return df.copy()
+    factory = repository_factory.get()
+    if factory is None:
+        return pd.DataFrame(columns=COLS)
+    with factory() as con:
+        rows = daily_rows(con)
+    if not rows:
+        return pd.DataFrame(columns=COLS)
+    df = pd.DataFrame(rows)
+    df['work_date'] = pd.to_datetime(df['work_date'])
+    df['check_in_ts'] = df['check_in']
+    df['check_out_ts'] = df['check_out']
+    df['early_leave_minutes'] = df['early_minutes']
+    df['worked_hours'] = df['regular_hours'] + df['ot_hours']
+    return df
 
 
 def _load_branches() -> pd.DataFrame:
-    p = DATA / "branches.csv"
+    try:
+        p = workflow_store.settings().data_dir / "clean/branches.csv"
+    except LookupError:
+        p = DATA / "branches.csv"
     mtime = _get_mtime(p)
     if "branches" in _CACHE and _CACHE["branches"]["mtime"] == mtime:
         return _CACHE["branches"]["data"].copy()
@@ -87,24 +100,19 @@ def _load_branches() -> pd.DataFrame:
 
 
 def _load_events() -> pd.DataFrame:
-    p = DATA / "attendance_events.csv"
-    mtime = _get_mtime(p)
-    if "events" in _CACHE and _CACHE["events"]["mtime"] == mtime:
-        df = _CACHE["events"]["data"].copy()
-    else:
-        df = pd.read_csv(p, parse_dates=["ts"]) if p.is_file() else pd.DataFrame()
-        _CACHE["events"] = {"mtime": mtime, "data": df.copy()}
     factory = repository_factory.get()
-    if factory is not None:
-        with factory() as db:
-            records = db.scalars(select(AttendanceRecord)).all()
-            if records:
-                live = pd.DataFrame([{"employee_id": r.employee_id, "ts": r.timestamp,
-                                      "device_id": r.device_id, "similarity": r.similarity,
-                                      "scan_type": r.scan_type} for r in records])
-                live["ts"] = pd.to_datetime(live["ts"], unit="s", utc=True).dt.tz_convert("Asia/Ho_Chi_Minh").dt.tz_localize(None)
-                df = pd.concat([df, live], ignore_index=True)
-    return df.copy()
+    if factory is None:
+        return pd.DataFrame()
+    with factory() as con:
+        records = con.scalars(select(AttendanceRecord)).all()
+        rows = [{"employee_id": r.employee_id, "ts": r.timestamp,
+                 "device_id": r.device_id, "similarity": r.similarity,
+                 "scan_type": r.scan_type} for r in records]
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    df['ts'] = pd.to_datetime(df['ts'], unit='s', utc=True).dt.tz_convert('Asia/Ho_Chi_Minh').dt.tz_localize(None)
+    return df
 
 
 def _names() -> Dict[str, str]:

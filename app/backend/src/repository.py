@@ -22,7 +22,7 @@ def read_csv(path):
 def reference_data(settings):
     return {
         "branches": read_csv(settings.data_dir / "clean/branches.csv"),
-        "shifts": read_csv(settings.data_dir / "raw/shifts.csv"),
+        "shifts": read_csv(settings.data_dir / ("clean/shifts.csv" if (settings.data_dir / "clean/shifts.csv").is_file() else "raw/shifts.csv")),
         "roles": [{"id": key, "name": value} for key, value in ROLE_VN.items()],
     }
 

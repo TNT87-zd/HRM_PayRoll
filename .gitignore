@@ -14,3 +14,30 @@ models/
 models/
 data/live/
 *.onnx
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local backups
+/backups/
+/data/backups/
+*.bak
+*.backup_*
+
+# Runtime database, attendance imports and reports
+/data/private/
+/data/attendance/
+/data/reports/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.db-wal
+*.db-shm
+
+# Local environment
+.env
+.env.*
+!.env.example
