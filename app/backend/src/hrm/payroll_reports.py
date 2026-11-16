@@ -15,15 +15,9 @@ SUMMARY = [('employee_id','Mã NV'),('contract_type','FT/PT'),('gross','Lương 
            ('insurance','BH NLĐ'),('employer_insurance','BH DN'),('tax','Thuế'),('net','Thực lĩnh')]
 
 def configuration(con, month):
-    saved = get(con, 'payroll_config', month)
-    if saved:
-        return saved
-    path = Path(core.__file__).with_name('payroll_contracts.json')
-    if not path.is_file():
-        raise ValueError('Chưa khai hợp đồng cho kỳ này. Nhập cấu hình hợp đồng trước khi tính lương.')
-    return dict(payroll_2026_policy=core.load_policy(),
-                contracts=json.loads(path.read_text(encoding='utf-8-sig')),
-                source='CONTRACT_FILE')
+    from hrm.payroll_configuration import resolve
+    return resolve(con, month)
+
 
 def safe(value):
     if isinstance(value, (dict,list)):
