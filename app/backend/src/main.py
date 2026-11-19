@@ -2,9 +2,10 @@ import importlib.util
 import logging
 from contextlib import asynccontextmanager
 import mimetypes
+from urllib.parse import quote
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from config import PROJECT_ROOT, Settings
 from database import Base, open_database
@@ -108,6 +109,27 @@ def create_app(settings=None, face_engine=None, pose_estimator=None):
         if not settings.landmark_model.is_file():
             return JSONResponse({"detail": "Thiếu model. Chạy app/backend/scripts/setup_face_assets.py"}, status_code=503)
         return FileResponse(settings.landmark_model, media_type="application/octet-stream")
+
+    @application.get("/", include_in_schema=False)
+    def home():
+        return RedirectResponse('/login.html', status_code=303)
+
+    @application.get("/admin.html", include_in_schema=False)
+    @application.get("/portal.html", include_in_schema=False)
+    @application.get("/employee.html", include_in_schema=False)
+    def dashboard_page(request: Request, account=Depends(auth.session_user)):
+        path = request.url.path
+        headers = {"Cache-Control": "no-store"}
+        if account is None:
+            target = path + ('?' + request.url.query if request.url.query else '')
+            return RedirectResponse('/login.html?next=' + quote(target, safe=''), status_code=303, headers=headers)
+        if account.role == 'kiosk':
+            return RedirectResponse('/kiosk.html', status_code=303, headers=headers)
+        if account.role == 'employee' and path != '/employee.html':
+            return RedirectResponse('/employee.html', status_code=303, headers=headers)
+        if account.role in {'hr', 'manager'} and path == '/employee.html':
+            return RedirectResponse('/admin.html', status_code=303, headers=headers)
+        return FileResponse(PROJECT_ROOT / "app/frontend" / path[1:], headers=headers)
 
     application.mount("/", StaticFiles(directory=str(PROJECT_ROOT / "app/frontend"), html=True), name="frontend")
     return application

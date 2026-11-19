@@ -36,8 +36,6 @@ const FaceRegistration = () => (
                     <label>Chi nhánh<select name="branch_id" id="branchId" required><option value="">Chọn chi nhánh</option></select></label>
                     <label>Chức vụ<select name="role" id="role" required><option value="">Chọn chức vụ</option></select></label>
                     <label>Loại hợp đồng<select name="contract_type" id="contractType" required><option value="FT">FT · Toàn thời gian</option><option value="PT">PT · Bán thời gian</option></select></label>
-                    <label>Ca làm chính<select name="primary_shift" id="primaryShift" required><option value="">Chọn ca làm</option></select></label>
-                    <label id="salaryLabel">Lương tháng (VND)<input id="salary" type="number" min="1" step="1" required inputMode="numeric" placeholder="Nhập mức lương" /></label>
                     <label id="employmentLabel" hidden>Trạng thái làm việc<select id="employmentStatus"><option value="active">Đang làm việc</option><option value="inactive">Ngừng hoạt động</option></select></label>
                   </div>
                   <div className="row form-actions"><button id="saveProfile" type="submit" className="primary">Lưu hồ sơ</button><span id="profileHelp" className="muted small">Hệ thống cấp mã nhân viên khi lưu.</span></div>

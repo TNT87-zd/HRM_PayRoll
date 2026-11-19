@@ -5,7 +5,7 @@
 <meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Đăng ký nhân viên · HRM</title>
 <link href="/css/enroll.css" rel="stylesheet"/>
-<script src="/js/enroll.mjs" type="module"></script>
+<script src="/js/enroll.mjs?v=profile-only" type="module"></script>
 <link href="/css/cafe-integrated.css?v=20261106" rel="stylesheet"/>
 <link href="/css/capture-studio.css?v=20261107-1" rel="stylesheet"/><script defer="True" src="/js/capture-studio.js?v=20261107-1"></script></head>
 <body class="cafe-app cafe-enroll" data-shell="none"><aside aria-label="Điều hướng chính" class="cafe-sidebar"><a class="cafe-brand" href="/admin.html"><span>☕</span><strong>CÀ PHÊ 5TN<small>NHÂN SỰ &amp; TIỀN LƯƠNG</small></strong></a><p class="cafe-nav-label">VẬN HÀNH CỬA HÀNG</p><nav><a data-cafe-link="" href="/admin.html"><span aria-hidden="true">▦</span>Tổng quan</a><a data-cafe-link="" href="/kiosk.html"><span aria-hidden="true">◎</span>Điểm danh Kiosk</a><a aria-current="page" data-cafe-link="" href="/enroll.html"><span aria-hidden="true">♙</span>Đăng ký khuôn mặt</a><a data-cafe-link="" href="/portal.html#schedule"><span aria-hidden="true">▤</span>Lịch làm việc &amp; ca</a><a data-cafe-link="" href="/portal.html#attendance"><span aria-hidden="true">◷</span>Bảng chấm công</a><a data-cafe-link="" href="/portal.html#leave"><span aria-hidden="true">✓</span>Đơn nghỉ phép</a><a data-cafe-link="" href="/portal.html#salary"><span aria-hidden="true">₫</span>Tính lương</a><a data-cafe-link="" href="/portal.html#people"><span aria-hidden="true">♧</span>Nhân sự</a><a data-cafe-link="" href="/portal.html#audit"><span aria-hidden="true">≡</span>Nhật ký thao tác</a></nav><div class="cafe-sidebar-foot">Cafe 5TN · HRM &amp; Payroll</div></aside><div class="cafe-workspace"><div class="studio-top"><span>VẬN HÀNH CỬA HÀNG <b> / CÀ PHÊ 5TN</b></span><div><a href="/portal.html">Lịch ca &amp; bảng công</a><a href="/admin.html">Tổng quan ↗</a></div></div>
@@ -41,8 +41,6 @@
 <label>Chi nhánh<select id="branchId" name="branch_id" required=""><option value="">Chọn chi nhánh</option></select></label>
 <label>Chức vụ<select id="role" name="role" required=""><option value="">Chọn chức vụ</option></select></label>
 <label>Loại hợp đồng<select id="contractType" name="contract_type" required=""><option value="FT">FT · Toàn thời gian</option><option value="PT">PT · Bán thời gian</option></select></label>
-<label>Ca làm chính<select id="primaryShift" name="primary_shift" required=""><option value="">Chọn ca làm</option></select></label>
-<label id="salaryLabel">Lương tháng (VND)<input id="salary" inputmode="numeric" min="1" placeholder="Nhập mức lương" required="" step="1" type="number"/></label>
 <label hidden="" id="employmentLabel">Trạng thái làm việc<select id="employmentStatus"><option value="active">Đang làm việc</option><option value="inactive">Ngừng hoạt động</option></select></label>
 </div>
 <div class="row form-actions"><button class="primary" id="saveProfile" type="submit">Lưu hồ sơ</button><span class="muted small" id="profileHelp">Hệ thống cấp mã nhân viên khi lưu.</span></div>

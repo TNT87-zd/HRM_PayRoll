@@ -12,11 +12,14 @@ from hrm import core
 from hrm.store import get, settings
 
 SUMMARY = [('employee_id','Mã NV'),('contract_type','FT/PT'),('gross','Lương gộp'),
-           ('insurance','BH NLĐ'),('employer_insurance','BH DN'),('tax','Thuế'),('net','Thực lĩnh')]
+           ('insurance','BH NLĐ'),('employer_insurance','BH DN'),('tax','Thuế'),('net','Thực lĩnh'),
+           ('advance_paid','Tạm ứng đã chi'),('balance_due','Còn phải trả'),
+           ('pending_shift_count','Ca thiếu vào/ra')]
 
 def configuration(con, month):
     from hrm.payroll_configuration import resolve
-    return resolve(con, month)
+    from hrm.payroll_calendar import apply_calendar
+    return apply_calendar(resolve(con, month), month)
 
 
 def safe(value):
@@ -26,10 +29,10 @@ def safe(value):
         return "'"+value
     return value
 
-def csv_bytes(rows):
+def csv_bytes(rows, fields=None):
     out=io.StringIO(newline='')
-    if rows:
-        keys=list(dict.fromkeys(k for row in rows for k in row))
+    if rows or fields:
+        keys=fields or list(dict.fromkeys(k for row in rows for k in row))
         writer=csv.DictWriter(out,keys)
         writer.writeheader()
         writer.writerows({k:safe(v) for k,v in row.items()} for row in rows)
@@ -65,9 +68,14 @@ def workbook_bytes(p):
     sheet('Bang luong',p['rows'],SUMMARY)
     sheet('Chi tiet',p['rows'])
     sheet('Bang cong',p.get('attendance',[]))
+    if p.get('errors'):
+        sheet('Can xu ly', [dict(employee_id=eid, error=message) for eid,message in p['errors'].items()],
+              [('employee_id','Mã NV'),('error','Lỗi tính lương')])
     sheet('Nguon du lieu',[dict(month=p['month'],status=p['status'],run_id=p.get('run_id',''),
         calculated_at=p.get('calculated_at',''),finalized_at=p.get('finalized_at',''),
         input_hash=p.get('input_hash',''),source=p.get('source',''),
+        calculation_scope=p.get('calculation_scope','all'),
+        selected_employee_id=p.get('selected_employee_id'),
         note=p.get('parameters',{}).get('note',''))])
     out=io.BytesIO(); wb.save(out)
     return out.getvalue()

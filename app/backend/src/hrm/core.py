@@ -117,15 +117,7 @@ def progressive_tax(taxable, brackets):
     return money(result)
 
 
-def calculate_employee(employee, metrics, contract, period, config=None, adjustments=None):
-    """Monthly payroll from verified aggregate hours. One payment per month.
-
-    PT eligibility/base uses agreed contractual monthly pay, not OT or bonuses.
-    Separate trial contract is excluded; probation embedded in labor contract is not.
-    Supports VN resident workers with one employer, no pension/special exemptions.
-    Returns only scalar fields so the existing generic XLSX exporter works.
-    """
-    cfg=config or load_policy()
+def validate_pay_period(contract, period, cfg):
     try: datetime.strptime(period,'%Y-%m')
     except (ValueError,TypeError) as exc: raise ValueError('Kỳ phải có dạng YYYY-MM') from exc
     if not cfg['supported_from'] <= period <= cfg['supported_until']:
@@ -137,6 +129,42 @@ def calculate_employee(employee, metrics, contract, period, config=None, adjustm
         raise ValueError('Trường hợp BH đặc biệt cần xử lý riêng trước khi tính')
     if contract.get('valid_from','9999-99')>period or contract.get('valid_until','0000-00')<period:
         raise ValueError('Hợp đồng chưa được xác nhận cho kỳ tính này')
+
+
+def hourly_wage(employee, cfg, contract):
+    typ=employee['contract_type']
+    if typ not in ('FT','PT'): raise ValueError('Loại nhân viên phải FT hoặc PT')
+    day_hours=dec(cfg['hours_per_day']); standard_days=dec(cfg['standard_days'])
+    if day_hours<=0 or standard_days<=0: raise ValueError('Ngày và giờ chuẩn phải dương')
+    wage = dec(employee.get('base_salary') or 0)
+    rate = wage / (day_hours * standard_days) if typ == 'FT' else dec(employee.get('hourly_rate') or 0)
+    if not rate:
+        unit = 'tháng FT' if typ == 'FT' else 'giờ PT'
+        raise ValueError(f'Chưa cấu hình lương {unit} cho nhân viên. Nhập mức lương trong phần Tính lương.')
+    if contract.get('document_type') == 'labor':
+        if typ == 'FT' and wage < dec(cfg['region_min_month']):
+            raise ValueError('Lương FT hợp đồng thấp hơn tối thiểu vùng II')
+        if typ == 'PT' and rate < dec(cfg['region_min_hour']):
+            raise ValueError('Lương giờ PT thấp hơn 22.700 đồng')
+    return rate
+
+
+OT_MULTIPLIERS = {'ot_normal_hours':'1.5','ot_rest_hours':'2','ot_holiday_hours':'3',
+    'ot_normal_night_hours':'2','ot_normal_night_after_day_ot_hours':'2.1',
+    'ot_rest_night_hours':'2.7','ot_holiday_night_hours':'3.9'}
+
+
+def work_pay(hours, rate):
+    paid_hours = dec(hours.get('regular_hours', 0)) + dec(hours.get('paid_leave_hours', 0))
+    base = money(rate * paid_hours)
+    ot_parts = {k: money(rate * dec(hours.get(k, 0)) * Decimal(v)) for k, v in OT_MULTIPLIERS.items()}
+    return base, sum(ot_parts.values()), paid_hours, ot_parts
+
+
+def calculate_employee(employee, metrics, contract, period, config=None, adjustments=None):
+    """Monthly payroll from verified aggregate hours and the confirmed contract."""
+    cfg=config or load_policy()
+    validate_pay_period(contract, period, cfg)
     # Không suy luận hợp đồng pháp lý từ nhãn FT/PT.
     document=contract.get('document_type')
     if document not in ('labor','trial','none'): raise ValueError('document_type: labor, trial hoặc none')
@@ -154,6 +182,17 @@ def calculate_employee(employee, metrics, contract, period, config=None, adjustm
         raise ValueError('Còn công thiếu, ca ngoài khung giờ hoặc xung đột nghỉ phép; xử lý trước khi tính')
     if integer(metrics.get('worked_days',0),'Ngày đi làm')>31: raise ValueError('Ngày đi làm vượt 31')
     h={k:dec(metrics.get(k,0),k) for k in HOUR_FIELDS}
+    # Simplified project policy: retain hours, remove all night-specific pay.
+    if cfg.get('night_pay_enabled', True) is False:
+        for night_key, day_key in (
+            ('ot_normal_night_hours', 'ot_normal_hours'),
+            ('ot_normal_night_after_day_ot_hours', 'ot_normal_hours'),
+            ('ot_rest_night_hours', 'ot_rest_hours'),
+            ('ot_holiday_night_hours', 'ot_holiday_hours'),
+        ):
+            h[day_key] += h[night_key]
+            h[night_key] = Decimal(0)
+        h['regular_night_hours'] = Decimal(0)
     if sum(v for k,v in h.items() if k!='regular_night_hours')>744: raise ValueError('Tổng giờ không hợp lệ')
     if h['regular_night_hours']>h['regular_hours']: raise ValueError('Giờ đêm trong ca vượt giờ thường')
     a=adjustments or {}
@@ -161,21 +200,10 @@ def calculate_employee(employee, metrics, contract, period, config=None, adjustm
         if dec(a.get(key,0)):
             raise ValueError('Bảo hiểm và thuế tự tính; đặt ô '+key+' ở form cũ về 0')
     typ=employee['contract_type']
-    if typ not in ('FT','PT'): raise ValueError('Loại nhân viên phải FT hoặc PT')
-    wage=dec(employee.get('base_salary',0))
-    day_hours=dec(cfg['hours_per_day']); standard_days=dec(cfg['standard_days'])
-    if day_hours<=0 or standard_days<=0: raise ValueError('Ngày và giờ chuẩn phải dương')
-    rate=wage/(day_hours*standard_days) if typ=='FT' else dec(employee.get('hourly_rate',0))
-    if document=='labor':
-        if typ=='FT' and wage<dec(cfg['region_min_month']): raise ValueError('Lương FT hợp đồng thấp hơn tối thiểu vùng II')
-        if typ=='PT' and rate<dec(cfg['region_min_hour']): raise ValueError('Lương giờ PT thấp hơn 22.700 đồng')
-    paid_hours=h['regular_hours']+h['paid_leave_hours']
-    base=money(rate*paid_hours)
-    multipliers={'ot_normal_hours':'1.5','ot_rest_hours':'2','ot_holiday_hours':'3',
-        'ot_normal_night_hours':'2','ot_normal_night_after_day_ot_hours':'2.1',
-        'ot_rest_night_hours':'2.7','ot_holiday_night_hours':'3.9'}
-    ot_parts={k:money(rate*h[k]*Decimal(v)) for k,v in multipliers.items()}
-    ot=sum(ot_parts.values())
+    wage=dec(employee.get('base_salary') or 0)
+    day_hours=dec(cfg['hours_per_day'])
+    rate=hourly_wage(employee,cfg,contract)
+    base,ot,paid_hours,ot_parts=work_pay(h,rate)
     night_extra=money(rate*h['regular_night_hours']*Decimal('.3'))
     meal=money(dec(contract.get('meal_per_day',cfg['meal_per_day']))*integer(metrics.get('worked_days',0),'Ngày làm'))
     fixed_allowance=money(dec(contract.get('fixed_allowance',0)))
@@ -226,7 +254,7 @@ def calculate_employee(employee, metrics, contract, period, config=None, adjustm
     result=dict(employee_id=employee['employee_id'],full_name=employee['full_name'],contract_type=typ,period=period,
         regular_paid_hours=float(paid_hours),regular_night_hours=float(h['regular_night_hours']),
         paid_days=float(paid_hours/day_hours),worked_days=int(metrics.get('worked_days',0)),hourly_rate=float(rate),
-        base_pay=base,ot_pay=ot,night_extra_pay=night_extra,ot_hours=float(sum(h[k] for k in multipliers)),
+        base_pay=base,ot_pay=ot,night_extra_pay=night_extra,ot_hours=float(sum(h[k] for k in OT_MULTIPLIERS)),
         allowance=allowance,meal_allowance=meal,fixed_allowance=fixed_allowance,bonus=bonus,attendance_bonus=attendance_bonus,
         gross=gross,insurance=insurance,employer_insurance=employer,employer_total_cost=gross+employer,
         insurance_eligible=eligible,insurance_contract_base=money(agreed_base),insurance_si_base=money(si_base),insurance_ui_base=money(ui_base),
@@ -238,7 +266,7 @@ def calculate_employee(employee, metrics, contract, period, config=None, adjustm
         contract_snapshot=json.dumps(contract,ensure_ascii=False,sort_keys=True))
     for key in emp_parts:
         result['employee_'+key]=emp_parts[key]; result['employer_'+key]=company_parts[key]
-    for key in multipliers:
+    for key in OT_MULTIPLIERS:
         result[key]=float(h[key]); result[key.replace('_hours','_pay')]=ot_parts[key]
     return result
 
@@ -262,6 +290,7 @@ def _interval_hours(left, right, night=False):
 
 
 def metrics_from_rows(employee_id, rows, cfg):
+    night_enabled = cfg.get('night_pay_enabled', True)
     m={k:Decimal(0) for k in HOUR_FIELDS}
     days=set(); unpaid=set(); late=0; bad=0
     def day_type(value):
@@ -281,11 +310,11 @@ def metrics_from_rows(employee_id, rows, cfg):
         ci,co,start,end=[dt(r[k]) for k in ('check_in','check_out','scheduled_start','scheduled_end')]
         if start.date()!=end.date() or end<=start or ci.date()!=start.date() or co>end+timedelta(days=1):
             raise ValueError('Thời điểm ca/IN/OUT không hợp lệ')
-        if dec(r['break_minutes']) and end.hour>=22:
+        if night_enabled and dec(r['break_minutes']) and end.hour>=22:
             raise ValueError('Ca có giờ đêm và giờ nghỉ: cần biết thời điểm nghỉ; cần khai thời điểm nghỉ cụ thể cho ca B/3')
         left,right=max(ci,start),min(co,end)
         regular=max(Decimal(0),_interval_hours(left,right)-dec(r['break_minutes'])/60)
-        regular_night=min(regular,_interval_hours(left,right,True))
+        regular_night=min(regular,_interval_hours(left,right,True)) if night_enabled else Decimal(0)
         typ=day_type(start)
         if typ=='normal':
             m['regular_hours']+=regular; m['regular_night_hours']+=regular_night
@@ -300,7 +329,7 @@ def metrics_from_rows(employee_id, rows, cfg):
             finish=min(midnight,ot_right)
             key=(ot_left.date().isoformat(),day_type(ot_left))
             entry=buckets.setdefault(key,[Decimal(0),Decimal(0)])
-            night=_interval_hours(ot_left,finish,True)
+            night=_interval_hours(ot_left,finish,True) if night_enabled else Decimal(0)
             entry[0]+=_interval_hours(ot_left,finish)-night; entry[1]+=night
             ot_left=finish
     for (_,typ),(daytime,night) in buckets.items():

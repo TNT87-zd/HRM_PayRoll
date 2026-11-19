@@ -65,15 +65,6 @@ function fillSelect(id, rows, key, text, placeholder) {
   for (const row of rows) select.add(new Option(text(row), row[key]));
 }
 
-function shifts(selected = '') {
-  if (!state.options) return;
-  fillSelect('primaryShift', state.options.shifts.filter(s => s.contract_type === $('contractType').value),
-    'shift_id', s => `${s.shift_name} · ${s.start_time}–${s.end_time}`, 'Chọn ca làm');
-  $('primaryShift').value = selected;
-  const label = $('salaryLabel');
-  label.firstChild.textContent = $('contractType').value === 'FT' ? 'Lương tháng (VND)' : 'Lương giờ (VND)';
-}
-
 async function loadEmployees() {
   const search = new URLSearchParams({q: $('search').value, page: state.page, page_size: 12});
   if ($('faceFilter').value) search.set('face_status', $('faceFilter').value);
@@ -137,8 +128,7 @@ async function selectEmployee(id) {
   const employee = state.employee;
   $('fullName').value = employee.full_name; $('branchId').value = employee.branch_id;
   $('role').value = employee.role; $('contractType').value = employee.contract_type;
-  shifts(employee.primary_shift); $('hireDate').value = employee.hire_date;
-  $('salary').value = employee.contract_type === 'FT' ? employee.base_salary || '' : employee.hourly_rate || '';
+  $('hireDate').value = employee.hire_date;
   $('employmentStatus').value = employee.employment_status; $('employmentLabel').hidden = false;
   $('profileTitle').textContent = employee.full_name; $('profileBadge').textContent = employee.employee_id;
   $('profileBadge').className = 'tag ready'; $('saveProfile').textContent = 'Cập nhật hồ sơ';
@@ -154,7 +144,7 @@ async function newEmployee() {
   await resetCapture(); stopCamera(); state.employee = null;
   state.profileKey = crypto.randomUUID(); $('profileForm').reset();
   $('hireDate').value = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-  shifts(); $('employmentLabel').hidden = true;
+  $('employmentLabel').hidden = true;
   $('profileTitle').textContent = 'Hồ sơ nhân viên mới'; $('profileBadge').textContent = 'Chưa lưu'; $('profileBadge').className = 'tag pending';
   $('saveProfile').textContent = 'Lưu hồ sơ'; $('profileHelp').textContent = 'Hệ thống cấp mã nhân viên khi lưu.';
   $('faceBadge').textContent = 'Lưu hồ sơ trước khi quét';
@@ -166,8 +156,6 @@ async function newEmployee() {
 $('profileForm').addEventListener('submit', async event => {
   event.preventDefault(); if (state.busy || state.scanning || state.uploading) return;
   const body = Object.fromEntries(new FormData(event.target));
-  body.base_salary = body.contract_type === 'FT' ? Number($('salary').value) : null;
-  body.hourly_rate = body.contract_type === 'PT' ? Number($('salary').value) : null;
   const id = state.employee?.employee_id;
   if (id) body.employment_status = $('employmentStatus').value;
   state.busy = true; setButtons();
@@ -419,7 +407,6 @@ $('verifyFace').addEventListener('click', async () => {
 
 $('cancelCapture').addEventListener('click', async () => { await resetCapture(); stopCamera(); notice('faceMessage', 'Đã hủy lượt quét. Hồ sơ và bộ khuôn mặt đang dùng được giữ.'); });
 $('newEmployee').addEventListener('click', () => newEmployee());
-$('contractType').addEventListener('change', () => { shifts(); $('salary').value = ''; });
 $('cameraSelect').addEventListener('change', () => { stopCamera(); state.baseline = null; if (state.session) resetCapture().then(() => notice('faceMessage', 'Đã đổi camera. Xác nhận đồng ý và bắt đầu lượt mới.')); });
 $('consent').addEventListener('change', async () => {
   if (!$('consent').checked && state.session && state.session.status !== 'committed') {

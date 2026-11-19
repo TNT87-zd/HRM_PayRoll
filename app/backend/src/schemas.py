@@ -11,7 +11,7 @@ class EmployeeCreate(BaseModel):
     branch_id: str = Field(min_length=1, max_length=32)
     role: str
     contract_type: Literal["FT", "PT"]
-    primary_shift: str = Field(min_length=1, max_length=32)
+    primary_shift: str = Field(default="", max_length=32)
     hire_date: date
     base_salary: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     hourly_rate: float | None = Field(default=None, gt=0, allow_inf_nan=False)
@@ -25,10 +25,10 @@ class EmployeeCreate(BaseModel):
 
     @model_validator(mode="after")
     def valid_pay(self):
-        if self.contract_type == "FT" and (self.base_salary is None or self.hourly_rate is not None):
-            raise ValueError("FT cần lương tháng; bỏ trống lương giờ")
-        if self.contract_type == "PT" and (self.hourly_rate is None or self.base_salary is not None):
-            raise ValueError("PT cần lương giờ; bỏ trống lương tháng")
+        if self.contract_type == "FT" and self.hourly_rate is not None:
+            raise ValueError("Hợp đồng FT dùng mức lương tháng")
+        if self.contract_type == "PT" and self.base_salary is not None:
+            raise ValueError("Hợp đồng PT dùng mức lương giờ")
         return self
 
 

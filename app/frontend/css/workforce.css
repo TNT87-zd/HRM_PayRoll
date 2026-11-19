@@ -8,3 +8,22 @@
 .cafe-portal .cafe-workspace>header{padding-bottom:12px;margin-bottom:12px}.cafe-portal #notice{font-size:11px;padding:9px 12px}.cafe-portal #app>nav{display:none}.cafe-portal #app>.row{margin-bottom:16px}.cafe-portal #app>.warn{margin-bottom:20px}
 @media(max-width:1200px){.wf-pay-layout{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:700px){.wf-bottom{grid-template-columns:minmax(0,1fr)}}
+.wf-pay-list tr[data-pay-person]{cursor:pointer}
+.wf-pay-list tr[data-pay-person]:hover td{background:#fbf1e4}
+.wf-pay-list button.wf-person-button{display:block;text-align:left;min-width:0}
+.wf-pay-list button.wf-row-calculate{margin-top:8px;min-height:32px;padding:4px 10px;background:#efe3d4}
+
+.wf-pay-metrics{grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:10px;margin:16px 0}
+.wf-pay-metrics .wf-metric{padding:11px 12px;border-radius:13px}
+.wf-pay-metrics .wf-metric small{min-height:0;font-size:11px}
+.wf-pay-metrics .wf-metric strong{font-size:clamp(17px,1.5vw,22px);margin:5px 0;letter-spacing:-.35px}
+.wf-pay-metrics .wf-metric span{color:#695a4d}
+.wf-cost-details{margin-bottom:20px;padding:9px 14px;background:#f4f0e9;border:1px solid #e7ddd0;border-radius:12px}
+.wf-cost-details summary{cursor:pointer;font-weight:650}
+.wf-cost-details summary span{display:inline-block;margin-left:12px;color:#695a4d;font-weight:500}
+.wf-cost-breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px;margin-top:8px;border-top:1px solid #e7ddd0}
+.wf-slip h4{font-size:12px;margin:18px 0 0}
+@media(max-width:620px){.wf-cost-breakdown{grid-template-columns:1fr}}
+
+.cafe-portal #leaveReviewStatus.error{color:#a32621}
+.cafe-portal #leaveTable td:nth-child(6){min-width:140px;max-width:340px;white-space:normal;overflow-wrap:anywhere}

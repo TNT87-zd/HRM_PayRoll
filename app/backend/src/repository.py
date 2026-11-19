@@ -71,13 +71,15 @@ def employee_or_404(db, employee_id):
     return employee
 
 
-def validate_reference(payload, settings):
+def validate_reference(payload, settings, *, check_shift=True):
     refs = reference_data(settings)
     if payload.branch_id not in {r["branch_id"] for r in refs["branches"]}:
         raise HTTPException(422, "Chi nhánh không hợp lệ")
+    if not check_shift or not payload.primary_shift:
+        return
     shifts = {r["shift_id"]: r for r in refs["shifts"]}
     shift = shifts.get(payload.primary_shift)
-    if not shift or shift.get("contract_type") != payload.contract_type:
+    if not shift or shift.get("contract_type") not in (None, "", payload.contract_type):
         raise HTTPException(422, "Ca làm không phù hợp loại hợp đồng")
 
 

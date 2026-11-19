@@ -74,10 +74,9 @@ def test_no_schedule_never_records_success(env):
 def test_leave_and_employee_scope(env):
     app,c,*_=env
     a=profile(c).json()['employee_id']; b=profile(c).json()['employee_id']
-    assert shift(c,a).status_code==200
-    leave=c.post('/api/hrm/leaves',json=dict(employee_id=a,start_date='2026-01-02',end_date='2026-01-02',leave_type='PAID',reason='Nghỉ có phép')).json()
-    assert c.post('/api/hrm/leaves/'+leave['leave_id']+'/decision',json={'status':'approved'}).status_code==200
-    assert c.get('/api/hrm/attendance?month=2026-01').json()[0]['paid_leave_hours']==8
+    assert shift(c,a,start='2026-01-02T07:00:00+07:00',end='2026-01-02T15:00:00+07:00').status_code==200
+    body=dict(employee_id=a,start_date='2026-01-02',end_date='2026-01-02',leave_type='PAID',reason='Nghỉ có phép')
+    assert c.post('/api/hrm/leaves',json=body).status_code==403
     with app.state.session_factory() as db:
         u=User(username='staff',password_hash=hash_password('staff-password-123'),role='employee'); db.add(u);db.flush()
         db.add(UserEmployee(user_id=u.id,employee_id=a));db.commit()
@@ -88,6 +87,43 @@ def test_leave_and_employee_scope(env):
     assert shift(c,a,'denied').status_code==403
     assert c.post('/api/hrm/leaves',json=dict(employee_id=b,start_date='2026-01-03',end_date='2026-01-03',leave_type='PAID',reason='Không đúng người')).status_code==403
     assert c.get('/api/hrm/payroll/2026-01').status_code==404
+    submitted=c.post('/api/hrm/leaves',json=body)
+    assert submitted.status_code==200, submitted.text
+    assert submitted.json()['status']=='pending'
+    leave_id=submitted.json()['leave_id']
+    second=c.post('/api/hrm/leaves',json={**body,'start_date':'2026-01-03','end_date':'2026-01-03'})
+    assert second.status_code==200
+    second_id=second.json()['leave_id']
+    assert c.post(f'/api/hrm/leaves/{leave_id}/decision',json={'status':'approved'}).status_code==403
+    c.post('/api/auth/logout')
+    assert c.post('/api/auth/login',json={'username':'manager','password':'test-enrollment-password'}).status_code==200
+    row=next(row for row in c.get('/api/hrm/leaves').json() if row['leave_id']==leave_id)
+    assert row['full_name']
+    decision=c.post(f'/api/hrm/leaves/%20{leave_id}%20/decision',json={'status':'approved'})
+    assert decision.status_code==200, decision.text
+    assert c.post(f'/api/hrm/leaves/{second_id}/decision',json={'status':'rejected'}).json()['status']=='rejected'
+    assert c.post(f'/api/hrm/leaves/{leave_id}/decision',json={'status':'rejected'}).status_code==409
+    assert c.get('/api/hrm/attendance?month=2026-01').json()[0]['paid_leave_hours']==8
+    c.post('/api/auth/logout')
+    assert c.post('/api/auth/login',json={'username':'staff','password':'staff-password-123'}).status_code==200
+    personal=c.get('/api/hrm/self?month=2026-01').json()['leaves']
+    assert {row['leave_id']:row['status'] for row in personal}=={leave_id:'approved',second_id:'rejected'}
+
+
+def test_manual_attendance_saves_assigned_events_and_ignores_retry(env):
+    app, client, *_ = env
+    eid = profile(client).json()['employee_id']
+    assert shift(client, eid, start='2026-11-18T07:00:00+07:00', end='2026-11-18T15:00:00+07:00').status_code == 200
+    assert event(client, eid, 'IN', '2026-11-18T01:00:00').status_code == 409
+    entered = event(client, eid, 'IN', '2026-11-18T07:00:00').json()
+    exited = event(client, eid, 'OUT', '2026-11-18T15:00:00').json()
+    assert entered['source'] == exited['source'] == 'MANUAL'
+    assert event(client, eid, 'OUT', '2026-11-18T15:00:00').json()['event_id'] == exited['event_id']
+    row, = client.get('/api/hrm/attendance?month=2026-11').json()
+    assert row['shift_id'] == 's1' and row['status'] == 'present' and row['regular_hours'] == 8
+    with app.state.session_factory() as db:
+        assert db.scalar(select(func.count()).select_from(AttendanceAssignment)) == 2
+    assert len([item for item in client.get('/api/hrm/audit').json() if item['action'] == 'attendance_event']) == 2
 
 
 def test_reconcile_existing_main_attendance_without_copy(env):

@@ -65,11 +65,20 @@ def patch(emp_id: str, payload: EmployeePatch, request: Request, user=Depends(re
     merged = {key: getattr(employee, key) for key in keys}
     changes = payload.model_dump(mode="json", exclude_unset=True)
     merged.update({key: value for key, value in changes.items() if key in keys})
+    if merged["contract_type"] != employee.contract_type:
+        if "primary_shift" not in changes:
+            merged["primary_shift"] = ""
+        incompatible_field = "hourly_rate" if merged["contract_type"] == "FT" else "base_salary"
+        if incompatible_field not in changes:
+            merged[incompatible_field] = None
+    if merged["primary_shift"] is None:
+        merged["primary_shift"] = ""
     try:
         valid = EmployeeCreate.model_validate(merged)
     except ValidationError:
         raise HTTPException(422, "Thông tin hồ sơ hoặc loại lương không hợp lệ")
-    validate_reference(valid, request.app.state.settings)
+    validate_reference(valid, request.app.state.settings, check_shift=valid.primary_shift != employee.primary_shift
+                       or valid.contract_type != employee.contract_type)
     for key, value in valid.model_dump(mode="json").items():
         setattr(employee, key, value)
     if "employment_status" in changes:

@@ -1,0 +1,86 @@
+:root {
+  --staff-ink: #322016;
+  --staff-muted: #705c4b;
+  --staff-paper: #fbf7f1;
+  --staff-line: #e8dacb;
+  --staff-accent: #8a4b27;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  color: var(--staff-ink);
+}
+
+.staff-page * { box-sizing: border-box }
+.staff-page [hidden] { display: none !important }
+.staff-page { margin: 0; background: var(--staff-paper) }
+.brand-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  color: #402517;
+  background: #f4bf7b;
+  font-weight: 800;
+}
+.staff-page label { font-size: 0.9rem; font-weight: 650 }
+.staff-page input, .staff-page select {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 9px 11px;
+  background: white;
+  border: 1px solid #d8c7b6;
+  border-radius: 9px;
+  color: var(--staff-ink);
+  font: inherit;
+}
+.staff-primary, .staff-secondary {
+  min-height: 42px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  padding: 8px 15px;
+  color: white;
+  background: var(--staff-accent);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.staff-secondary { background: #fff; color: var(--staff-ink); border-color: #d8c7b6; white-space: nowrap }
+.staff-primary:hover { background: #71381e }
+.staff-secondary:hover { background: #f4eadf }
+.staff-primary:disabled, .staff-secondary:disabled { opacity: .6; cursor: wait }
+.staff-page :focus-visible { outline: 2px solid #a85629; outline-offset: 2px }
+.staff-error { color: #a22520; margin: 4px 0 }
+.staff-error:empty { display: none }
+.staff-bar { position: sticky; z-index: 2; top: 0; background: white; border-bottom: 1px solid var(--staff-line) }
+.staff-bar-inner, .staff-main { width: min(100% - 36px, 1080px); margin: 0 auto }
+.staff-bar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0 }
+.staff-brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 750 }
+.staff-main { padding: 32px 0 48px }
+.staff-title { display: flex; justify-content: space-between; align-items: end; gap: 18px; flex-wrap: wrap }
+.staff-title h1 { margin: 4px 0; font-size: clamp(28px, 4.5vw, 42px); line-height: 1.15 }
+.staff-eyebrow { margin: 0; color: var(--staff-accent); font-weight: 750 }
+.staff-muted { color: var(--staff-muted); line-height: 1.5 }
+.staff-title .staff-muted { margin: 8px 0 0 }
+.staff-period { display: grid; align-items: center; gap: 7px; grid-template-columns: auto minmax(130px, 1fr) auto }
+.staff-tabs { display: flex; flex-wrap: wrap; gap: 7px 12px; margin: 14px 0 }
+.staff-tabs a { padding: 10px 13px; border-radius: 9px; color: var(--staff-ink); text-decoration: none; font-weight: 650 }
+.staff-tabs a[aria-current] { background: #392119; color: white }
+.staff-card { padding: clamp(16px, 3vw, 27px); border-radius: 16px; background: white; border: 1px solid var(--staff-line) }
+.staff-card h2 { font-size: 22px; margin: 0 0 8px }
+.staff-table { overflow: auto; margin: 14px 0 0 }
+.staff-table table { border-collapse: collapse; width: 100%; white-space: nowrap; font-size: .9rem }
+.staff-table th, .staff-table td { padding: 12px; border-bottom: 1px solid var(--staff-line); text-align: left }
+.staff-table th { background: #f2e7db; color: #5e4230 }
+.staff-table tbody tr:nth-child(even) { background: #fcf9f5 }
+.staff-pay-summary dl, .staff-payslip dl { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0 }
+.staff-pay-summary dl div, .staff-payslip dl div { padding: 11px 14px; border-radius: 10px; background: #f5ece1 }
+.staff-pay-summary dt, .staff-payslip dt { font-size: .84rem; color: var(--staff-muted) }
+.staff-pay-summary dd, .staff-payslip dd { margin: 4px 0 0; font-weight: 750 }
+.staff-payslip { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--staff-line) }
+.staff-payslip h3 { margin: 0 }
+.staff-leave { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); align-items: end; gap: 12px }
+.staff-leave label { display: grid; gap: 6px }
+
+@media(max-width: 640px) {
+  .staff-main { padding-top: 24px }
+}

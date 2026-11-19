@@ -1,20 +1,45 @@
 import io
 import os
 from contextvars import ContextVar
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict
 
 import pandas as pd
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from models import AttendanceRecord, Employee
 from hrm.data_snapshot import daily_rows
 from hrm import store as workflow_store
+from hrm import admin_overview, core, payroll_reports
 
 repository_factory = ContextVar("analytics_repository_factory", default=None)
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
+
+
+@router.get('/branch-dashboard')
+def dashboard(day: date | None = None, days: int = 1):
+    if days not in (1, 7, 30):
+        raise HTTPException(422, 'Khoảng báo cáo hỗ trợ 1, 7 hoặc 30 ngày')
+    now = datetime.now(core.VN)
+    selected = day or now.date()
+    if selected > now.date() or selected.year < 2000:
+        raise HTTPException(422, 'Chọn ngày báo cáo hợp lệ, đến ngày hôm nay')
+    with workflow_store.db() as con:
+        return admin_overview.branch_dashboard(con, selected, days, now)
+
+
+@router.get('/branch-dashboard/export')
+def dashboard_export(day: date | None = None, days: int = 1):
+    report = dashboard(day, days)
+    columns = ('work_date', 'employee_id', 'full_name', 'branch_id', 'shift_id', 'status',
+               'check_in', 'check_out', 'regular_hours', 'ot_hours', 'late_minutes', 'source')
+    rows = [{key: row.get(key) for key in columns} for row in report['attendance']]
+    filename = f"cham_cong_{report['branch']['id']}_{report['start_date']}_{report['date']}.csv"
+    return StreamingResponse(io.BytesIO(payroll_reports.csv_bytes(rows, columns)), media_type='text/csv; charset=utf-8',
+                             headers={'Content-Disposition': f'attachment; filename="{filename}"'})
 
 # Định vị thư mục data/clean an toàn (hỗ trợ cả chạy qua app hoặc standalone)
 try:
