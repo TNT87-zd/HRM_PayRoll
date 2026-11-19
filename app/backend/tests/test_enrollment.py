@@ -56,10 +56,10 @@ def env(tmp_path):
     data = tmp_path / 'data'
     (data/'clean').mkdir(parents=True)
     (data/'raw').mkdir()
-    (data/'clean/branches.csv').write_text('branch_id,branch_name,lat,lon\nCN01,Chi nhánh 1,16.0471,108.2208\nCN02,Chi nhánh 2,16.068,108.19\n')
-    (data/'clean/devices.csv').write_text('device_id,branch_id\nCN01-TB01,CN01\n')
-    (data/'raw/shifts.csv').write_text('shift_id,shift_name,contract_type,start_time,end_time\nFT_AM,Ca sáng,FT,07:00,15:00\nPT_AM,Ca bán thời gian,PT,07:00,11:00\n')
-    (data/'clean/employees.csv').write_text('employee_id,full_name,branch_id,role,contract_type,primary_shift,hire_date,base_salary,hourly_rate\nNV0001,Nhân viên gốc,CN01,phuc_vu,FT,FT_AM,2026-01-01,8000000,\n')
+    (data/'clean/branches.csv').write_text('branch_id,branch_name,lat,lon\nCN01,Chi nhánh 1,16.0471,108.2208\nCN02,Chi nhánh 2,16.068,108.19\n', encoding="utf-8")
+    (data/'clean/devices.csv').write_text('device_id,branch_id\nCN01-TB01,CN01\n', encoding="utf-8")
+    (data/'raw/shifts.csv').write_text('shift_id,shift_name,contract_type,start_time,end_time\nFT_AM,Ca sáng,FT,07:00,15:00\nPT_AM,Ca bán thời gian,PT,07:00,11:00\n', encoding="utf-8")
+    (data/'clean/employees.csv').write_text('employee_id,full_name,branch_id,role,contract_type,primary_shift,hire_date,base_salary,hourly_rate\nNV0001,Nhân viên gốc,CN01,phuc_vu,FT,FT_AM,2026-01-01,8000000,\n', encoding="utf-8")
     settings = Settings(data_dir=data, storage_dir=tmp_path/'private')
     engine, pose = FakeEngine(), FakePose()
     app = create_app(settings, engine, pose)
@@ -271,9 +271,29 @@ def test_preview_no_attendance_and_kiosk_deduplication(env,monkeypatch):
     preview=client.post(f'/api/employees/{employee}/face/verify-preview',files=files)
     assert preview.json()['verified_expected'] and preview.json()['recorded'] is False
     with app.state.session_factory() as db: assert db.scalar(select(func.count()).select_from(AttendanceRecord))==0
-    from datetime import datetime, timedelta, timezone
-    now=datetime.now(timezone.utc)
-    assert client.put('/api/hrm/shifts',json=dict(shift_id='test-shift',employee_id=employee,branch_id='CN01',start=(now-timedelta(minutes=30)).isoformat(),end=(now+timedelta(hours=1)).isoformat())).status_code==200
+    from datetime import datetime
+    from hrm.core import VN
+    from routers import kiosk
+
+    scan_time = datetime(2026, 11, 10, 10, 0, tzinfo=VN)
+
+    class KioskTestClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            if tz is None:
+                return scan_time.replace(tzinfo=None)
+            return scan_time.astimezone(tz)
+
+    monkeypatch.setattr(kiosk, "datetime", KioskTestClock)
+
+    response = client.put("/api/hrm/shifts", json={
+        "shift_id": "test-shift",
+        "employee_id": employee,
+        "branch_id": "CN01",
+        "start": scan_time.replace(hour=7).isoformat(),
+        "end": scan_time.replace(hour=15).isoformat(),
+    })
+    assert response.status_code == 200, response.text
     for index in range(2):
         response=client.post('/api/kiosk/recognize',files=files,data={'device_id':'CN01-TB01','scan_type':'IN','lat':16.0471,'lon':108.2208})
         assert response.status_code==200,response.text

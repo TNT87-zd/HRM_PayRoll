@@ -6,59 +6,162 @@ from test_enrollment import env, profile, completed, picture
 from models import AttendanceRecord, AttendanceAssignment, Employee, User, UserEmployee
 from routers.auth import hash_password
 from hrm.core import VN
+from routers import kiosk
 
-
-def shift(client,eid,key='s1',start='2026-01-02T08:00:00+07:00',end='2026-01-02T16:00:00+07:00'):
+def shift(client,eid,key='s1',start='2026-01-02T07:00:00+07:00',end='2026-01-02T15:00:00+07:00'):
     return client.put('/api/hrm/shifts',json=dict(shift_id=key,employee_id=eid,branch_id='CN01',start=start,end=end,approved_ot_minutes=60))
 
 def event(client,eid,kind,ts,key='s1'):
     return client.post('/api/hrm/events/manual',json=dict(employee_id=eid,shift_id=key,scan_type=kind,ts=ts,reason='HR đối chiếu sổ ca'))
 
 def test_shared_profiles_payroll_and_lock(env):
-    app,c,*_=env
-    e=profile(c,base_salary=10400000).json()['employee_id']
-    assert c.get('/api/hrm/auth/me').json()['role']=='hr'
-    assert e in {x['employee_id'] for x in c.get('/api/hrm/employees').json()}
-    assert shift(c,e).status_code==200
-    assert shift(c,e,'overlap').status_code==409
-    assert event(c,e,'IN','2026-01-02T08:00:00+07:00').status_code==200
-    assert event(c,e,'OUT','2026-01-02T17:00:00+07:00').status_code==200
-    rows=c.get('/api/hrm/attendance?month=2026-01').json()
-    assert rows[0]['regular_hours']==8 and rows[0]['ot_hours']==1
+    from hrm.core import load_policy
+    from hrm.store import put
+
+    app, client, *_ = env
+    day = "2026-10-06"
+    month = day[:7]
+    payroll_url = f"/api/hrm/payroll/{month}"
+
+    response = profile(client, base_salary=10400000, hire_date="2026-10-01")
+    assert response.status_code == 201, response.text
+    employee_id = response.json()["employee_id"]
+
+    # Use an isolated contract so the test can verify one day's pay.
+    contract = {
+        "resident": True,
+        "nationality": "VN",
+        "document_type": "trial",
+        "duration_months": 1,
+        "valid_from": month,
+        "valid_until": month,
+        "meal_per_day": 0,
+        "attendance_bonus": 0,
+    }
     with app.state.session_factory() as db:
-        assert db.scalar(select(func.count()).select_from(AttendanceRecord))==2
-    run=c.post('/api/hrm/payroll/2026-01/calculate',json={'note':'Đã kiểm tra công','standard_hours':208}).json()
-    assert run['rows'][0]['net']==475000
-    # Employee edits through main invalidate draft HRM payroll too.
-    assert c.patch('/api/employees/'+e,json={'base_salary':12480000}).status_code==200
-    assert c.post('/api/hrm/payroll/2026-01/finalize',json={'reviewed':True,'input_hash':run['input_hash']}).status_code==409
-    run=c.post('/api/hrm/payroll/2026-01/calculate',json={'note':'Tính lại lương'}).json()
-    assert c.post('/api/hrm/payroll/2026-01/finalize',json={'reviewed':True,'input_hash':run['input_hash']}).status_code==200
-    assert event(c,e,'IN','2026-01-02T08:10:00+07:00').status_code==409
-    assert c.get('/api/hrm/payroll/2026-01/export').content[:2]==b'PK'
-    assert c.get('/api/hrm/audit').json()
+        put(db, "payroll_config", month, {
+            "payroll_2026_policy": load_policy(),
+            "contracts": {employee_id: contract},
+            "source": "TEST_FIXTURE",
+        })
+        db.commit()
+
+    assert client.get("/api/hrm/auth/me").json()["role"] == "hr"
+    assert employee_id in {
+        row["employee_id"] for row in client.get("/api/hrm/employees").json()
+    }
+    schedule = {
+        "start": f"{day}T07:00:00+07:00",
+        "end": f"{day}T15:00:00+07:00",
+    }
+    response = shift(client, employee_id, **schedule)
+    assert response.status_code == 200, response.text
+    response = shift(client, employee_id, "overlap", **schedule)
+    assert response.status_code == 409, response.text
+
+    for kind, clock in (("IN", "07:00:00"), ("OUT", "16:00:00")):
+        response = event(client, employee_id, kind, f"{day}T{clock}+07:00")
+        assert response.status_code == 200, response.text
+    response = client.get("/api/hrm/attendance", params={"month": month})
+    assert response.status_code == 200, response.text
+    row, = response.json()
+    assert row["regular_hours"] == 8 and row["ot_hours"] == 1, row
+    with app.state.session_factory() as db:
+        assert db.scalar(select(func.count()).select_from(AttendanceRecord)) == 2
+
+    response = client.post(
+        f"{payroll_url}/calculate",
+        json={"note": "Đã kiểm tra công", "standard_hours": 208},
+    )
+    assert response.status_code == 200, response.text
+    run = response.json()
+    assert run["rows"][0]["net"] == 475000, run
+
+    response = client.patch(
+        f"/api/employees/{employee_id}", json={"base_salary": 12480000},
+    )
+    assert response.status_code == 200, response.text
+    response = client.post(
+        f"{payroll_url}/finalize",
+        json={"reviewed": True, "input_hash": run["input_hash"]},
+    )
+    assert response.status_code == 409, response.text
+
+    response = client.post(f"{payroll_url}/calculate", json={"note": "Tính lại lương"})
+    assert response.status_code == 200, response.text
+    run = response.json()
+    assert run["rows"][0]["net"] == 570000, run
+    response = client.post(
+        f"{payroll_url}/finalize",
+        json={"reviewed": True, "input_hash": run["input_hash"]},
+    )
+    assert response.status_code == 200, response.text
+    response = event(client, employee_id, "IN", f"{day}T07:10:00+07:00")
+    assert response.status_code == 409, response.text
+    assert client.get(f"{payroll_url}/export").content[:2] == b"PK"
+    assert client.get("/api/hrm/audit").json()
 
 
-def test_kiosk_to_timesheet_no_double_writes(env):
-    app,c,*_=env
-    e=profile(c).json()['employee_id']; completed(env,e)
-    now=datetime.now(VN)
-    assert shift(c,e,start=(now-timedelta(minutes=5)).isoformat(),end=(now+timedelta(hours=1)).isoformat()).status_code==200
-    files=[('files',('q.jpg',picture(n),'image/jpeg')) for n in range(50,53)]
-    data={'device_id':'CN01-TB01','scan_type':'IN','lat':16.0471,'lon':108.2208}
-    assert c.post('/api/kiosk/recognize',files=files,data=data).json()['recorded']
-    assert not c.post('/api/kiosk/recognize',files=files,data=data).json()['recorded']
-    data['scan_type']='OUT'
-    assert c.post('/api/kiosk/recognize',files=files,data=data).json()['recorded']
-    row=c.get('/api/hrm/attendance',params={'month':now.strftime('%Y-%m')}).json()[0]
-    assert row['status']=='present'
+def test_kiosk_to_timesheet_no_double_writes(env, monkeypatch):
+    app, client, *_ = env
+    employee_id = profile(client).json()["employee_id"]
+    completed(env, employee_id)
+    scan_time = datetime(2026, 11, 10, 10, 0, tzinfo=VN)
+    class KioskTestClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            if tz is None:
+                return scan_time.replace(tzinfo=None)
+            return scan_time.astimezone(tz)
+    monkeypatch.setattr(kiosk, "datetime", KioskTestClock)
+    response = shift(
+        client,
+        employee_id,
+        start=scan_time.replace(hour=7).isoformat(),
+        end=scan_time.replace(hour=15).isoformat(),
+    )
+    assert response.status_code == 200, response.text
+
+    files = [
+        ("files", ("q.jpg", picture(seed), "image/jpeg"))
+        for seed in range(50, 53)
+    ]
+    data = {
+        "device_id": "CN01-TB01",
+        "scan_type": "IN",
+        "lat": 16.0471,
+        "lon": 108.2208,
+    }
+
+    response = client.post("/api/kiosk/recognize", files=files, data=data)
+    assert response.status_code == 200, response.text
+    assert response.json()["recorded"] is True
+
+    response = client.post("/api/kiosk/recognize", files=files, data=data)
+    assert response.status_code == 200, response.text
+    assert response.json()["recorded"] is False
+
+    scan_time = scan_time.replace(hour=11)
+    data["scan_type"] = "OUT"
+    response = client.post("/api/kiosk/recognize", files=files, data=data)
+    assert response.status_code == 200, response.text
+    assert response.json()["recorded"] is True
+
+    response = client.get(
+        "/api/hrm/attendance",
+        params={"month": scan_time.strftime("%Y-%m")},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()[0]["status"] == "present"
+
     with app.state.session_factory() as db:
-        assert db.scalar(select(func.count()).select_from(AttendanceRecord))==2
-        assert db.scalar(select(func.count()).select_from(AttendanceAssignment))==2
-    data['lat']=0
-    assert c.post('/api/kiosk/recognize',files=files,data=data).status_code==403
-    c.post('/api/auth/logout')
-    assert c.post('/api/kiosk/recognize',files=files,data=data).status_code==401
+        assert db.scalar(select(func.count()).select_from(AttendanceRecord)) == 2
+        assert db.scalar(select(func.count()).select_from(AttendanceAssignment)) == 2
+
+    data["lat"] = 0
+    assert client.post("/api/kiosk/recognize", files=files, data=data).status_code == 403
+    client.post("/api/auth/logout")
+    assert client.post("/api/kiosk/recognize", files=files, data=data).status_code == 401
 
 
 def test_no_schedule_never_records_success(env):
@@ -131,7 +234,7 @@ def test_reconcile_existing_main_attendance_without_copy(env):
     e=profile(c).json()['employee_id']
     assert shift(c,e).status_code==200
     with app.state.session_factory() as db:
-        old=AttendanceRecord(employee_id=e,device_id='CN01-TB01',scan_type='IN',timestamp=datetime(2026,1,2,8,tzinfo=VN).timestamp(),similarity=.8)
+        old=AttendanceRecord(employee_id=e,device_id='CN01-TB01',scan_type='IN',timestamp=datetime(2026,1,2,7,tzinfo=VN).timestamp(),similarity=.8)
         db.add(old);db.commit();key=old.id
     assert c.get('/api/hrm/events/unassigned').json()[0]['attendance_id']==key
     assert c.post(f'/api/hrm/events/{key}/assign',json={'shift_id':'s1','reason':'Đối chiếu log cũ'}).status_code==200
