@@ -123,12 +123,29 @@ def test_profile_auth_and_reference_validation(env):
     assert client.get('/api/employees/NV9999').status_code == 404
     assert profile(client, branch_id='UNKNOWN').status_code == 422
     assert profile(client, primary_shift='PT_AM').status_code == 422
-    assert profile(client, base_salary=None).status_code == 422
+    assert profile(client, hourly_rate=28000).status_code == 422
     assert profile(client, full_name=' ').status_code == 422
     response = profile(client, contract_type='PT', primary_shift='PT_AM', base_salary=None, hourly_rate=28000)
     assert response.status_code == 201
     assert response.json()['hourly_rate'] == 28000
     assert response.json()['employee_id'] == 'NV0002'
+    new_profile = client.post('/api/employees', json={
+        'full_name': 'Nhân viên chưa xếp ca', 'branch_id': 'CN01', 'role': 'phuc_vu',
+        'contract_type': 'FT', 'hire_date': '2026-11-03',
+    }, headers={'Idempotency-Key': str(uuid.uuid4())})
+    assert new_profile.status_code == 201, new_profile.text
+    saved = new_profile.json()
+    assert saved['primary_shift'] == '' and saved['base_salary'] is None
+    assert start(client, saved['employee_id'])['session_id']
+    eid = response.json()['employee_id']
+    with app.state.session_factory() as db:
+        db.get(Employee, eid).primary_shift = 'CA_CU'
+        db.commit()
+    updated = client.patch('/api/employees/'+eid, json={'hourly_rate': 31000})
+    assert updated.status_code == 200, updated.text
+    assert updated.json()['hourly_rate'] == 31000 and updated.json()['primary_shift'] == 'CA_CU'
+    converted = client.patch('/api/employees/'+eid, json={'contract_type':'FT'}).json()
+    assert converted['contract_type']=='FT' and converted['hourly_rate'] is None and converted['primary_shift']==''
     client.cookies.clear()
     assert client.get('/api/employees').status_code == 401
     assert profile(client).status_code == 401

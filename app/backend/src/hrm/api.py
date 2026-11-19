@@ -4,6 +4,7 @@ import io
 import json
 import math
 import uuid
+from calendar import monthrange
 from datetime import date, datetime, timedelta
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,6 +14,7 @@ from hrm.store import settings
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, ConfigDict
 from hrm import core, payroll_reports as reports
+from hrm import payroll_workflow as workflow
 from hrm.auth import hr, user
 from hrm.store import db, records, get, put, audit, ROOT
 
@@ -68,6 +70,11 @@ class Run(Model):
     standard_hours: float = Field(default=208,gt=0,le=744)
     adjustments: dict[str,Adjustment] = Field(default_factory=dict)
     note: str = Field(min_length=5,max_length=500)
+    employee_id: str | None = None
+
+class AdvancePayment(Model):
+    calculation_id: str
+    amount: int = Field(gt=0,le=10000000000)
 
 class Close(Model):
     reviewed: Literal[True]
@@ -210,8 +217,8 @@ def import_live(u=Depends(hr)):
 
 @router.post('/leaves')
 def request_leave(body: Leave,u=Depends(user)):
-    if u['role']!='hr' and body.employee_id!=u['employee_id']:
-        raise HTTPException(403,'Chỉ được gửi đơn cho chính mình')
+    if u['role']!='employee' or body.employee_id!=u['employee_id']:
+        raise HTTPException(403,'Nhân viên chỉ được gửi đơn nghỉ phép cho chính mình')
     if body.end_date<body.start_date or (body.end_date-body.start_date).days>366:
         raise HTTPException(422,'Khoảng nghỉ không hợp lệ')
     item=body.model_dump(mode='json') | {'leave_id':uuid.uuid4().hex,'status':'pending'}
@@ -224,10 +231,15 @@ def request_leave(body: Leave,u=Depends(user)):
 @router.get('/leaves')
 def leaves(u=Depends(user)):
     with db() as con:
-        return scope(u,records(con,'leaves'))
+        rows = scope(u, records(con, 'leaves'))
+        if u['role'] == 'hr':
+            names = {employee['employee_id']: employee['full_name'] for employee in records(con, 'employees')}
+            return [{**row, 'full_name': names.get(row['employee_id'], row['employee_id'])} for row in rows]
+        return rows
 
 @router.post('/leaves/{key}/decision')
 def approve_leave(key: str,body: Decision,u=Depends(hr)):
+    key = key.strip()
     with db(True) as con:
         l=get(con,'leaves',key)
         if not l:
@@ -258,14 +270,127 @@ def fingerprint(data):
     return hashlib.sha256(json.dumps(data,sort_keys=True).encode()).hexdigest()
 
 @router.get('/attendance')
-def attendance(month: str,u=Depends(user)):
+def attendance(month: str,u=Depends(user), contract_type: Literal['FT','PT'] | None = None, q: str = '',
+               branch_id: str | None = None):
     month_check(month)
     with db() as con:
         data=inputs(con,month)
+        query = q.strip().casefold()
+        matches = {e['employee_id'] for e in data['employees']
+                   if query in f"{e['employee_id']} {e['full_name']}".casefold()}
+        return [row for row in scope(u, workflow.attendance_rows(data))
+                if (contract_type is None or row['contract_type'] == contract_type)
+                and (branch_id is None or row['branch_id'] == branch_id)
+                and (not query or row['employee_id'] in matches)]
+
+
+@router.get('/payroll/{month}/planning')
+def payroll_planning(month: str, u=Depends(user)):
+    month_check(month)
+    with db() as con:
+        employees = scope(u, records(con, 'employees'))
+        advances = scope(u, list(workflow.month_advances(con, month).values()))
+        return {'estimates': workflow.historical_estimates(con, month, employees),
+                'advances': {row['employee_id']: row for row in advances}}
+
+
+@router.get('/self')
+def employee_dashboard(month: str, u=Depends(user)):
+    month_check(month)
+    if u['role'] != 'employee':
+        raise HTTPException(403, 'Trang này dành cho tài khoản nhân viên')
+    employee_id = u['employee_id']
+    now = datetime.now(core.VN)
+    with db() as con:
+        employee = get(con, 'employees', employee_id)
+        if employee is None:
+            raise HTTPException(404, 'Không tìm thấy hồ sơ nhân viên')
+        data = inputs(con, month)
+        attendance = workflow.attendance_rows(data, employee_id=employee_id, events_until=now)
+        advance = get(con, workflow.ADVANCE_KIND, workflow.advance_key(month, employee_id))
+        snapshot = get(con, 'payroll', month)
+        published = scope(u, snapshot['rows']) if snapshot and snapshot['status'] == 'finalized' else []
+        monthly = published[0] if published else None
+        daily, error = [], None
+        if attendance:
+            try:
+                saved_policy = snapshot.get('parameters', {}).get('payroll_2026_policy') if monthly else None
+                if saved_policy and snapshot.get('attendance') and monthly.get('hourly_rate') is not None:
+                    cfg = saved_policy
+                    daily = workflow.daily_earnings(employee_id, scope(u, snapshot['attendance']), cfg,
+                                                    core.dec(monthly['hourly_rate']), now)
+                else:
+                    config = reports.configuration(con, month)
+                    cfg = config['payroll_2026_policy']
+                    contract = config['contracts'].get(employee_id)
+                    core.validate_pay_period(contract, month, cfg)
+                    daily = workflow.daily_earnings(employee_id, attendance, cfg,
+                                                    core.hourly_wage(employee, cfg, contract), now)
+            except ValueError as ex:
+                error = str(ex)
+        profile_fields = ('employee_id', 'full_name', 'branch_id', 'contract_type')
+        monthly_fields = ('net', 'insurance', 'tax', 'advance_paid', 'balance_due', 'gross', 'other_deduction')
+        return {
+            'profile': {key: employee[key] for key in profile_fields},
+            'shifts': scope(u, data['shifts']), 'attendance': attendance,
+            'leaves': scope(u, records(con, 'leaves')),
+            'daily': daily, 'daily_error': error,
+            'advance': {key: advance[key] for key in ('accrued','suggested_amount','paid_amount')} if advance else None,
+            'monthly': {key: monthly.get(key) for key in monthly_fields} if monthly else None,
+            'as_of': now.isoformat(),
+        }
+
+
+@router.post('/payroll/{month}/advance/{employee_id}')
+def calculate_advance(month: str, employee_id: str, u=Depends(hr)):
+    month_check(month)
+    day = date.fromisoformat(month + '-15')
+    now = datetime.now(core.VN)
+    if now.date() < day:
+        raise HTTPException(409, 'Có thể tính tạm ứng từ ngày 15 của kỳ')
+    with db(True) as con:
+        unlocked(con, month)
+        key = workflow.advance_key(month, employee_id)
+        old = get(con, workflow.ADVANCE_KIND, key)
+        if old and old['paid_amount']:
+            raise HTTPException(409, 'Đã ghi nhận tạm ứng đã chi cho nhân viên trong kỳ')
+        employee = get(con, 'employees', employee_id)
+        if not employee:
+            raise HTTPException(404, 'Không tìm thấy nhân viên')
+        data = inputs(con, month)
+        cutoff = min(now, datetime.combine(day + timedelta(days=1), datetime.min.time(), core.VN))
         try:
-            return scope(u,core.timesheet(data['shifts'],data['events'],data['leaves']))
+            config = reports.configuration(con, month)
+            rows = workflow.attendance_rows(data, cutoff=cutoff, employee_id=employee_id, events_until=now)
+            result = workflow.advance_preview(employee, rows, month, config['payroll_2026_policy'],
+                                              config['contracts'].get(employee_id), cutoff)
         except ValueError as ex:
-            raise HTTPException(422,str(ex))
+            raise HTTPException(422, str(ex)) from ex
+        result['calculation_id'] = uuid.uuid4().hex
+        put(con, workflow.ADVANCE_KIND, key, result)
+        audit(con, u['username'], 'payroll_advance_calculate', result)
+    return result
+
+
+@router.post('/payroll/{month}/advance/{employee_id}/payment')
+def record_advance_payment(month: str, employee_id: str, body: AdvancePayment, u=Depends(hr)):
+    month_check(month)
+    with db(True) as con:
+        unlocked(con, month)
+        key = workflow.advance_key(month, employee_id)
+        result = get(con, workflow.ADVANCE_KIND, key)
+        if not result or result['calculation_id'] != body.calculation_id:
+            raise HTTPException(409, 'Tạm tính đã thay đổi. Tải lại phiếu trước khi ghi nhận.')
+        if result['paid_amount']:
+            if result['paid_amount'] == body.amount:
+                return result
+            raise HTTPException(409, 'Đã ghi nhận số tiền tạm ứng đã chi trong kỳ')
+        if body.amount > result['accrued']:
+            raise HTTPException(422, 'Số tiền đã chi vượt lương tạm tính đến ngày 15')
+        result.update(paid_amount=body.amount, paid_at=datetime.now(core.VN).isoformat())
+        put(con, workflow.ADVANCE_KIND, key, result)
+        audit(con, u['username'], 'payroll_advance_payment', result)
+    return result
 
 @router.post('/payroll/{month}/calculate')
 def calculate(month: str,body: Run,u=Depends(hr)):
@@ -273,31 +398,61 @@ def calculate(month: str,body: Run,u=Depends(hr)):
     with db(True) as con:
         unlocked(con,month)
         data=inputs(con,month)
-        try:
-            rows=core.timesheet(data['shifts'],data['events'],data['leaves'])
-        except ValueError as ex:
-            raise HTTPException(422,str(ex))
-        if not rows:
-            raise HTTPException(422,'Chưa có lịch ca trong kỳ')
-        if set(body.adjustments)-{e['employee_id'] for e in data['employees']}:
+        employees = {e['employee_id']: e for e in data['employees']}
+        target = body.employee_id
+        if target is not None and target not in employees:
+            raise HTTPException(404, 'Không tìm thấy nhân viên')
+        if set(body.adjustments)-employees.keys():
             raise HTTPException(422,'Mã nhân viên điều chỉnh không tồn tại')
-        params=body.model_dump()
+        params=body.model_dump(exclude={'employee_id'})
+        now = datetime.now(core.VN)
         try:
             params.update(reports.configuration(con,month))
-            pays=core.payroll(data['employees'],rows,params,params['adjustments'])
+            cfg = params['payroll_2026_policy']
+            if core.dec(params['standard_hours']) != core.dec(cfg['standard_days']) * core.dec(cfg['hours_per_day']):
+                raise ValueError('Giờ chuẩn FT phải khớp cấu hình của kỳ')
         except ValueError as ex:
             raise HTTPException(422,str(ex))
+        advances = workflow.month_advances(con, month)
+        rows = workflow.attendance_rows(data, cutoff=now, employee_id=target)
+        grouped = {}
+        for row in rows:
+            grouped.setdefault(row['employee_id'], []).append(row)
+        selected = [target] if target is not None else sorted(
+            grouped.keys() | {eid for eid, record in advances.items() if record['paid_amount']}
+        )
+        if not selected:
+            raise HTTPException(422,'Chưa có ca đã kết thúc trong kỳ')
+        previous = get(con, 'payroll', month) if target is not None else None
+        pays = [row for row in (previous or {}).get('rows', []) if row['employee_id'] != target]
+        errors = {eid: message for eid, message in (previous or {}).get('errors', {}).items() if eid != target}
+        if target is not None:
+            rows = [row for row in (previous or {}).get('attendance', []) if row['employee_id'] != target]
+            rows += grouped.get(target, [])
+        for eid in selected:
+            try:
+                advance = advances.get(eid, {})
+                if not grouped.get(eid) and not advance.get('paid_amount'):
+                    raise ValueError('Chưa có ca đã kết thúc trong kỳ cho nhân viên này')
+                pays.append(workflow.employee_pay(employees[eid], grouped.get(eid, []), month, params, advance))
+            except ValueError as ex:
+                errors[eid] = str(ex)
+        pays.sort(key=lambda row: row['employee_id'])
+        paid = {eid: row['paid_amount'] for eid, row in advances.items() if row['paid_amount']}
         result=dict(month=month,status='draft',policy=params['payroll_2026_policy']['version'],parameters=params,
                     run_id=uuid.uuid4().hex,source=params.get('source','WORKFLOW'),
-                    input_hash=fingerprint({"data":data,"parameters":params}),attendance=rows,rows=pays,
-                    calculated_at=datetime.now(core.VN).isoformat(),calculated_by=u['username'])
+                    input_hash=fingerprint({"data":data,"parameters":params,"paid_advances":paid}),
+                    attendance=rows,rows=pays,errors=errors,calculation_scope='employee' if target else 'all',
+                    selected_employee_id=target,
+                    calculated_at=now.isoformat(),calculated_by=u['username'])
         try:
             reports.archive(result)
         except OSError as ex:
             raise HTTPException(503,'Không lưu được báo cáo; kiểm tra dung lượng/quyền ghi thư mục data/reports') from ex
         put(con,'payroll_runs',result['run_id'],result)
         put(con,'payroll',month,result)
-        audit(con,u['username'],'payroll_calculate',{'month':month,'input_hash':result['input_hash']})
+        audit(con,u['username'],'payroll_calculate',{'month':month,'input_hash':result['input_hash'],
+                                                    'employee_id':target,'error_count':len(errors)})
     return result
 
 @router.post('/payroll/{month}/finalize')
@@ -308,21 +463,37 @@ def finalize(month: str,body: Close,u=Depends(hr)):
         p=get(con,'payroll',month)
         if not p:
             raise HTTPException(404,'Chưa tính bảng lương')
+        if p.get('calculation_scope', 'all') != 'all':
+            raise HTTPException(409, 'Hãy tính lại cả kỳ trước khi chốt')
+        if p.get('errors'):
+            raise HTTPException(409, 'Còn nhân viên có lỗi tính lương. Xem chi tiết từng hồ sơ.')
+        now = datetime.now(core.VN)
+        year, number = map(int, month.split('-'))
+        if now.date() < date(year, number, monthrange(year, number)[1]):
+            raise HTTPException(409, 'Chỉ chốt quyết toán từ ngày cuối của kỳ')
         try:
             current_params={**p['parameters'],**reports.configuration(con,month)}
         except ValueError as ex:
             raise HTTPException(422,str(ex))
         if current_params!=p['parameters']:
             raise HTTPException(409,'Cấu hình hợp đồng/chính sách đã đổi; hãy tính lại')
-        if p['input_hash']!=body.input_hash or p['input_hash']!=fingerprint({'data':inputs(con,month),'parameters':p['parameters']}):
+        data = inputs(con,month)
+        payload = {'data':data,'parameters':p['parameters']}
+        advances = workflow.month_advances(con, month)
+        paid = {eid: row['paid_amount'] for eid, row in advances.items() if row['paid_amount']}
+        if 'calculation_scope' in p or paid:
+            payload['paid_advances'] = paid
+        if p['input_hash']!=body.input_hash or p['input_hash']!=fingerprint(payload):
             raise HTTPException(409,'Dữ liệu đã thay đổi; cần tính và kiểm tra lại')
         if any(r['status']=='incomplete' or 'leave_and_work_conflict' in r['flags'] for r in p['attendance']):
             raise HTTPException(409,'Còn thiếu giờ vào/ra hoặc nghỉ phép trùng ngày làm')
-        if any(core.dt(s['end'])>datetime.now(core.VN) for s in inputs(con,month)['shifts']):
+        if any(core.dt(s['end'])>now for s in data['shifts']):
             raise HTTPException(409,'Ca làm việc chưa kết thúc')
-        if any(r.get('check_out') and core.dt(r['check_out'])>datetime.now(core.VN) for r in p['attendance']):
+        if any(core.dt(event['ts']) > now for event in data['events']):
             raise HTTPException(409,'Có giờ ra nằm trong tương lai; kiểm tra lại dữ liệu')
-        p.update(status='finalized',finalized_by=u['username'],finalized_at=datetime.now(core.VN).isoformat())
+        if 'calculation_scope' in p and p['attendance'] != workflow.attendance_rows(data, cutoff=now):
+            raise HTTPException(409, 'Có ca đã kết thúc hoặc lượt chấm mới đủ điều kiện; hãy tính lại')
+        p.update(status='finalized',finalized_by=u['username'],finalized_at=now.isoformat())
         if not p.get('run_id'):
             raise HTTPException(409,'Bảng lương cũ chưa có mã lần tính; hãy tính lại trước khi chốt')
         try:
@@ -356,8 +527,10 @@ def export(month: str,u=Depends(user)):
                     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 @router.get('/attendance/export')
-def export_attendance(month: str,u=Depends(user)):
-    return download(reports.csv_bytes(attendance(month,u)),f'attendance_{month}.csv','text/csv; charset=utf-8')
+def export_attendance(month: str,u=Depends(user), contract_type: Literal['FT','PT'] | None = None, q: str = '',
+                      branch_id: str | None = None):
+    return download(reports.csv_bytes(attendance(month,u,contract_type,q,branch_id)),
+                    f'attendance_{month}.csv','text/csv; charset=utf-8')
 
 @router.get('/payroll/{month}/json')
 def export_json(month: str,u=Depends(hr)):
@@ -369,6 +542,7 @@ def history(month: str,u=Depends(hr)):
     month_check(month)
     with db() as con:
         return [dict(run_id=p['run_id'],status=p['status'],calculated_at=p['calculated_at'],
+                     selected_employee_id=p.get('selected_employee_id'),
                      total_net=sum(r['net'] for r in p['rows']))
                 for p in records(con,'payroll_runs') if p['month']==month]
 

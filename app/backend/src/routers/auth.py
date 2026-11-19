@@ -48,13 +48,17 @@ def same_origin(request: Request):
             raise HTTPException(403, "Nguồn gửi yêu cầu không hợp lệ")
 
 
-def require_user(request: Request, db=Depends(get_db)):
-    same_origin(request)
+def session_user(request: Request, db=Depends(get_db)):
     token = request.cookies.get(COOKIE, "")
     login = db.get(LoginSession, hashlib.sha256(token.encode()).hexdigest()) if token else None
     user = db.get(User, login.user_id) if login and login.expires_at > time.time() else None
-    if user is None or not user.enabled:
-        raise HTTPException(401, "Vui lòng đăng nhập HR/quản lý")
+    return user if user and user.enabled else None
+
+
+def require_user(request: Request, user=Depends(session_user)):
+    same_origin(request)
+    if user is None:
+        raise HTTPException(401, "Vui lòng đăng nhập")
     return user
 
 

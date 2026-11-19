@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đăng nhập · Cà Phê 5TN</title>
+  <meta name="theme-color" content="#f5ede4">
+  <link rel="stylesheet" href="/css/login.css?v=employee-register">
+  <script type="module" src="/js/login.mjs?v=registration-review"></script>
+</head>
+<body class="login-page">
+  <main class="login-layout">
+    <div class="login-hero">
+      <img class="login-photo" src="/assets/login-cafe-phin.webp" width="1122" height="1402" fetchpriority="high" alt="">
+      <div class="login-brand">
+        <span class="login-monogram" aria-hidden="true">5TN</span>
+        <span>CÀ PHÊ 5TN</span>
+      </div>
+      <p class="login-hero-title">Nhân sự &amp;<br><em>tiền lương</em></p>
+    </div>
+    <section class="login-panel" id="login-panel" aria-labelledby="login-title">
+      <div class="login-panel-inner" id="sign-in-view">
+        <p class="login-eyebrow">Cổng nội bộ</p>
+        <h1 id="login-title" tabindex="-1">Đăng nhập</h1>
+        <p class="login-intro">Dùng tài khoản được cấp để truy cập hệ thống.</p>
+        <p id="login-success" class="login-success" role="status"></p>
+        <form id="login-form" method="post">
+          <div class="login-field">
+            <label for="username">Tên đăng nhập</label>
+            <input id="username" name="username" placeholder="Nhập tên đăng nhập" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="80">
+          </div>
+          <div class="login-field">
+            <label for="password">Mật khẩu</label>
+            <div class="login-password">
+              <input id="password" name="password" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password" required maxlength="128">
+              <button type="button" id="show-password" aria-controls="password" aria-label="Hiện mật khẩu">Hiện</button>
+            </div>
+          </div>
+          <p id="login-error" class="login-error" role="alert"></p>
+          <button class="login-submit" id="login-submit" type="submit" disabled>
+            <span id="login-submit-label">Đăng nhập</span><span class="login-arrow" aria-hidden="true">→</span>
+          </button>
+        </form>
+        <div class="login-help">
+          <button type="button" class="login-text-button" id="show-register" aria-controls="register-view">Đăng ký tài khoản nhân viên</button>
+          <p id="first-setup" hidden><a href="/enroll.html">Thiết lập tài khoản quản lý đầu tiên</a></p>
+        </div>
+      </div>
+      <div class="login-panel-inner" id="register-view" hidden>
+        <p class="login-eyebrow">Cổng nội bộ</p>
+        <h1 id="register-title" tabindex="-1">Đăng ký tài khoản</h1>
+        <p class="login-intro">Nhập mã nhân viên và thông tin đăng nhập. Quản lý sẽ duyệt yêu cầu.</p>
+        <form id="register-form" method="post">
+          <div class="login-field">
+            <label for="register-employee">Mã nhân viên</label>
+            <input id="register-employee" name="employee_id" placeholder="Ví dụ NV0003" required maxlength="40" autocapitalize="characters">
+          </div>
+          <div class="login-field">
+            <label for="register-username">Tên đăng nhập</label>
+            <input id="register-username" name="username" autocomplete="username" required minlength="3"
+              maxlength="80" pattern="[A-Za-z0-9_.\-]+" title="Dùng chữ không dấu, số, dấu chấm, gạch ngang hoặc gạch dưới" spellcheck="false">
+          </div>
+          <div class="login-field">
+            <label for="register-password">Mật khẩu</label>
+            <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="Ít nhất 12 ký tự" required minlength="12" maxlength="128">
+          </div>
+          <p id="register-error" class="login-error" role="alert"></p>
+          <button class="login-submit" id="register-submit" type="submit" disabled>Gửi yêu cầu đăng ký</button>
+        </form>
+        <div class="login-help">
+          <button type="button" class="login-text-button" id="show-sign-in" aria-controls="sign-in-view">Quay về đăng nhập</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

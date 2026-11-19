@@ -1,0 +1,56 @@
+{
+  "version": "CAFE_HOLIDAY_2026_V1",
+  "year": 2026,
+  "night_pay_enabled": false,
+  "notice": "Quy tắc đồ án giản lược: không tính tiền đêm. Không phải chính sách trả lương thực tế đầy đủ.",
+  "holidays": [
+    {
+      "date": "2026-01-01",
+      "name": "Tết Dương lịch"
+    },
+    {
+      "date": "2026-02-16",
+      "name": "Tết Nguyên đán (phương án quán chọn 16–20/02)"
+    },
+    {
+      "date": "2026-02-17",
+      "name": "Tết Nguyên đán (phương án quán chọn 16–20/02)"
+    },
+    {
+      "date": "2026-02-18",
+      "name": "Tết Nguyên đán (phương án quán chọn 16–20/02)"
+    },
+    {
+      "date": "2026-02-19",
+      "name": "Tết Nguyên đán (phương án quán chọn 16–20/02)"
+    },
+    {
+      "date": "2026-02-20",
+      "name": "Tết Nguyên đán (phương án quán chọn 16–20/02)"
+    },
+    {
+      "date": "2026-04-26",
+      "name": "Giỗ Tổ Hùng Vương"
+    },
+    {
+      "date": "2026-04-30",
+      "name": "Ngày Chiến thắng"
+    },
+    {
+      "date": "2026-05-01",
+      "name": "Quốc tế Lao động"
+    },
+    {
+      "date": "2026-09-01",
+      "name": "Quốc khánh (ngày liền kề quán chọn)"
+    },
+    {
+      "date": "2026-09-02",
+      "name": "Quốc khánh"
+    },
+    {
+      "date": "2026-11-24",
+      "name": "Ngày Văn hóa Việt Nam"
+    }
+  ]
+}

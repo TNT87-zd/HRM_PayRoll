@@ -1,5 +1,5 @@
 (() => {
-  const sections = ['people','schedule','attendance','leave','salary','audit'];
+  const sections = ['people','schedule','attendance','approvals','leave','salary','audit'];
   function syncNavigation() {
     const portal = location.pathname.endsWith('/portal.html');
     const hash = sections.includes(location.hash.slice(1)) ? location.hash : '#people';

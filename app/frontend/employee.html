@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Góc nhân viên · Cà Phê 5TN</title>
+  <link rel="stylesheet" href="/css/staff.css">
+  <script type="module" src="/js/employee.mjs"></script>
+</head>
+<body class="staff-page">
+  <header class="staff-bar">
+    <div class="staff-bar-inner">
+      <span class="staff-brand"><span class="brand-mark" aria-hidden="true">5TN</span> Cà Phê 5TN</span>
+      <button type="button" class="staff-secondary" data-logout>Đăng xuất</button>
+    </div>
+  </header>
+  <main class="staff-main">
+    <div class="staff-title">
+      <div>
+        <p class="staff-eyebrow">Góc nhân viên</p>
+        <h1 id="staff-name">Thông tin cá nhân</h1>
+        <p id="staff-profile" class="staff-muted"></p>
+      </div>
+      <div class="staff-period">
+        <label for="staff-month">Kỳ xem</label>
+        <input id="staff-month" type="month" required>
+        <button type="button" class="staff-secondary" id="staff-reload">Làm mới</button>
+      </div>
+    </div>
+    <p data-session-error class="staff-error" role="alert"></p>
+    <p id="staff-status" class="staff-muted" role="status">Đang tải dữ liệu…</p>
+    <div id="staff-content" hidden>
+      <nav class="staff-tabs" aria-label="Thông tin của tôi">
+        <a href="#schedule">Lịch làm việc</a><a href="#attendance">Bảng chấm công</a>
+        <a href="#salary">Lương của tôi</a><a href="#leave">Nghỉ phép</a>
+      </nav>
+      <section class="staff-card" id="schedule">
+        <h2>Lịch làm việc</h2>
+        <div id="schedule-rows" class="staff-table"></div>
+      </section>
+      <section class="staff-card" id="attendance" hidden>
+        <h2>Bảng chấm công</h2>
+        <div id="attendance-rows" class="staff-table"></div>
+      </section>
+      <section class="staff-card" id="salary" hidden>
+        <h2>Lương theo ngày</h2>
+        <p class="staff-muted">Tạm tính từ lương công và OT theo ngày bắt đầu ca. Phụ cấp, thưởng, bảo hiểm và thuế được đối chiếu ở phiếu lương tháng.</p>
+        <div class="staff-pay-summary" id="pay-summary"></div>
+        <div id="pay-rows" class="staff-table"></div>
+        <div id="month-payslip" class="staff-payslip"></div>
+      </section>
+      <section class="staff-card" id="leave" hidden>
+        <h2>Nghỉ phép</h2>
+        <form class="staff-leave" id="leave-request">
+          <label>Từ ngày<input name="start_date" type="date" required></label>
+          <label>Đến ngày<input name="end_date" type="date" required></label>
+          <label>Loại nghỉ<select name="leave_type"><option value="PAID">Có lương</option><option value="UNPAID">Không lương</option></select></label>
+          <label>Lý do<input name="reason" minlength="3" maxlength="300" required></label>
+          <button class="staff-primary" type="submit">Gửi đơn</button>
+        </form>
+        <p id="leave-status" role="status"></p>
+        <div id="leave-rows" class="staff-table"></div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
